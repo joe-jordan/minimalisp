@@ -38,8 +38,15 @@ The code is currently implemented in Python, and incomplete. The first checked-i
 * integers and floats (not standard form) -> stored as python primitives, so bignum support for free!
 * hex numbers starting with `#` (converted to integers)
 * comments are correctly escaped
-* strings, including most special characters, including `;`, escaped correctly (assuming python returns us a sensible repr)
+* strings, including most special characters, including `;`, escaped correctly (printing this only works assuming python returns us a sensible repr)
 * S-expressions parsed into linked lists correctly
 * quoted S-expressions store this status correctly
 * literal (dotted) pairs are parsed and stored correctly
 * nil or NIL correctly interpreted as a NIL object.
+
+TODO:
+
+decision still to be made:
+no support for + or - in front of literal numbers, or standard notation (i.e. 10.5926E-17). This must be tackled sensitively; `+1` should almost certainly be a *symbol*, so we may need to define a standard library function `neg` so that `1` gives us positive 1 and `(neg 1)` is a literal for negative one. This does mean we won't parse negative numbers until runtime, where we *could* have built an optimisation in. hmm.
+
+actually write the runtime code, with a Lisp stack that is independent of the Python stack.
