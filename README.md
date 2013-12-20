@@ -30,3 +30,16 @@ Part of the point of the simpler syntax of minimalisp is that *there are no magi
 Since we only want to actually evaluate one of the two clauses, we must pass them in deferred/quoted, and `eval` them.
 
 The author hypothesises that this should make the runtime faster, since we will not need to climb up the expression tree looking for magic functions before internal calls to `eval` - the information about whether execution is deferred or not is stored directly on the code data from the start.
+
+### Current Status
+
+The code is currently implemented in Python, and incomplete. The first checked-in version parses source files and builds the appropriate pair-based data structures (and prints these structures out for verification) before exiting. It should be able to throw errors for invalid syntax. it currently supports:
+
+* integers and floats (not standard form) -> stored as python primitives, so bignum support for free!
+* hex numbers starting with `#` (converted to integers)
+* comments are correctly escaped
+* strings, including most special characters, including `;`, escaped correctly (some weirdness from python with `'`, needs debugging)
+* S-expressions parsed into linked lists correctly
+* quoted S-expressions store this status correctly
+* literal (dotted) pairs are parsed and stored correctly
+* nil or NIL correctly interpreted as a NIL object.
