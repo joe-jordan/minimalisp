@@ -7,6 +7,18 @@ class NIL(object):
     def __repr__(self):
         return 'NIL'
 
+def crepr(s):
+    assert isinstance(s, str), "crepr is for strings, i.e. str() instances."
+    prepr = repr(s)
+    if prepr[:3] == '"""':
+        # anything goes, need to manually escape everything.
+        raise NotImplementedError("not implemented for this repr type.")
+    elif prepr[0] == '"':
+        return prepr
+    else:
+        assert prepr[0] == "'", "unknown repr output from python."
+        return '"' + prepr[1:-1].replace("\\'", "'").replace('"', '\\"') + '"'
+
 
 class MinimalispType(object):
     pass
@@ -78,11 +90,10 @@ class Value(MinimalispType):
         self.v = eval(v)
     
     def __repr__(self):
-        s = repr(self.v)
-        # force it to use double quotes, if it's a string's repr:
-        if s[0] == "'":
-            s = '"' + s[1:-1] + '"'
-        return s
+        if isinstance(self.v, str):
+            return crepr(self.v)
+        else:
+            return repr(self.v)
 
 
 BEGIN_PAIR = "'("

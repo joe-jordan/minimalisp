@@ -38,7 +38,7 @@ The code is currently implemented in Python, and incomplete. The first checked-i
 * integers and floats (not standard form) -> stored as python primitives, so bignum support for free!
 * hex numbers starting with `#` (converted to integers)
 * comments are correctly escaped
-* strings, including most special characters, including `;`, escaped correctly (some weirdness from python with `'`, needs debugging)
+* strings, including most special characters, including `;`, escaped correctly (assuming python returns us a sensible repr)
 * S-expressions parsed into linked lists correctly
 * quoted S-expressions store this status correctly
 * literal (dotted) pairs are parsed and stored correctly
