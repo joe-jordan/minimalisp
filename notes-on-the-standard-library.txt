@@ -20,6 +20,8 @@ possible further control flow functions:
 note on function scope:
 must be careful here. values leaking out of function calls would be double plus ungood since it would prevent any meaningful abstraction and reasoning about the code - we need a concept of blocks, where local variables mask outer ones and the masks are removed at the end of the block. This may be trivial if we allow in-language storing and restoring of the interpreter state - i.e. we may need that feature in minimalisp version 1 after all, if we are to implement `define` at all.
 
+in fact, there should logically follow a function called `block`, which executes code inside a sandbox, and returns the last value from the sandbox, throwing away all interpreter state changes - this should be enough to make functions work without an explicit `define`, we can just use a `set` and a `block` (this also gives us anonymous functions, since that's all we're `set`ing.) We can then, optionally and possibly in a later version, add some "grab interpreter state snapshot" function, and a similar "restore snapshot" function, which would allow us to build continuations (and with them, closures.)
+
 Pair Structuring:
 
 `car` -> retrieve the first item in a pair.
