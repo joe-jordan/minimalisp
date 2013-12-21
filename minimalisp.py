@@ -215,14 +215,52 @@ def parse():
             token_start = buffer_index
             char1 = text[buffer_index]
             
+            DUBIOUS = "+-"
+            
+            # shift the decision onto the second char.
+            if char1 in DUBIOUS:
+                # check ahead to see what type we're dealing with.
+                if text[buffer_index+1] in WHITESPACE:
+                    # this is a single + or - as a symbol. do nothing.
+                    pass
+                elif text[buffer_index+1] in NUMERIC:
+                    # if numeric, just set char1 so that the next loop runs properly.
+                    char1 = text[buffer_index+1]
+            
+            is_num = False
+            is_hex = False
+            is_string = False
+            is_symbol = False
+            
             if char1 in NUMERIC:
+                is_num = True
+                buffer_index += 1
+                contains_decimal = False
+                contains_exponent = False
                 while text[buffer_index] in '.' + NUMERIC:
                     buffer_index += 1
+                    if text[buffer_index] == '.':
+                        contains_decimal = True
+                        buffer_index += 1
+                        break
+                if contains_decimal:
+                    while text[buffer_index] in 'eE' + NUMERIC:
+                        buffer_index += 1
+                        if text[buffer_index] in 'eE':
+                            contains_exponent = True
+                            buffer_index += 1
+                            break
+                if contains_exponent:
+                    while text[buffer_index] in DUBIOUS + NUMERIC:
+                        buffer_index += 1
+                assert text[buffer_index] in WHITESPACE + END_PAIR, "ill formed number."
             elif char1 in BEGIN_HEXANUMERIC:
+                is_hex = True
                 buffer_index += 1
                 while text[buffer_index].upper() in HEXANUMERIC:
                     buffer_index += 1
             elif char1 in STRINGY:
+                is_string = True
                 buffer_index += 1
                 while True:
                     if text[buffer_index] in STRINGY and not text[buffer_index-1] == '\\':
@@ -230,21 +268,25 @@ def parse():
                         break
                     buffer_index += 1
             else:
+                is_symbol = True
                 buffer_index += 1
                 while text[buffer_index] not in WHITESPACE + PAIR_SEPARATOR + END_PAIR:
                     buffer_index += 1
             
             token = text[token_start:buffer_index]
             
-            if token[0] in NUMERIC + STRINGY:
+            if is_num or is_string:
                 v = Value(token)
-            elif token[0] in BEGIN_HEXANUMERIC:
+            elif is_hex:
                 token = token.replace('#', '0x')
                 v = Value(token)
-            elif token.upper() == "NIL":
-                v = NIL()
+            elif is_symbol:
+                if token.upper() == "NIL":
+                    v = NIL()
+                else:
+                    v = Symbol(token)
             else:
-                v = Symbol(token)
+                raise Exception()
             
             # if the current pair is empty, we assign to the left of it:
             if context['pair'].is_empty():

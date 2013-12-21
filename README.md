@@ -35,18 +35,17 @@ The author hypothesises that this should make the runtime faster, since we will 
 
 The code is currently implemented in Python, and incomplete. The first checked-in version parses source files and builds the appropriate pair-based data structures (and prints these structures out for verification) before exiting. It should be able to throw errors for invalid syntax. it currently supports:
 
-* integers and floats (not standard form) -> stored as python primitives, so bignum support for free!
-* hex numbers starting with `#` (converted to integers)
+* integers and floats -> stored as python primitives, so bignum support for free!
+* all base-10 number formats accepted (i.e. `1` == `+1`, `-1` == `(- 0 1)`, `-13.762e+037` == exactly what it says on the tin.)
+* hex numbers starting with `#` (converted to integers, hexness not remembered.)
 * comments are correctly escaped
 * strings, including most special characters, including `;`, escaped correctly (printing this only works assuming python returns us a sensible repr)
 * S-expressions parsed into linked lists correctly
 * quoted S-expressions store this status correctly
 * literal (dotted) pairs are parsed and stored correctly
 * nil or NIL correctly interpreted as a NIL object.
+* symbols are correctly detected in tricky cases, e.g. `+five` is a symbol, where `+5` is an integer.
 
 TODO:
-
-decision still to be made:
-no support for + or - in front of literal numbers, or standard notation (i.e. 10.5926E-17). This must be tackled sensitively; `+1` should almost certainly be a *symbol*, so we may need to define a standard library function `neg` so that `1` gives us positive 1 and `(neg 1)` is a literal for negative one. This does mean we won't parse negative numbers until runtime, where we *could* have built an optimisation in. hmm.
 
 actually write the runtime code, with a Lisp stack that is independent of the Python stack.

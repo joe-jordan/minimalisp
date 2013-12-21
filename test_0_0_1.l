@@ -4,3 +4,5 @@
 '(+ #FF47E 158.2)
 ("this is a string; with a semicolon in." 15 bar)
 ("this is another \"string\", with escaped quotes. and ' other ; significant # characters in.")
+(this -is lol +13 -56)
+(dat +1.836438E+37)
