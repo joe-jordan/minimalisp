@@ -30,6 +30,9 @@ Pair Structuring:
 
 (These definitions are exactly the same as in other lisps.)
 
+note on `cons` as a replacement for `'`:
+in other lisps, `'(cos 2)` is not the same as `(cons cos (cons 2 nil))` - in the latter, `cos` evaluates to a procedure object instead of a symbol. The equivalent expression is `(cons 'cos (cons 2 nil))`, often with `nil` written as `'()`, by the way. This means that it is impossible to replace the `'` functionality purely in terms of `cons` calls, since symbols do not evaluate to themselves, but to their values in the resultant expressions.
+
 String manipulation:
 
 `print` -> prints the arguments to stdout. If the argument is a single string, it prints the contents of the string, otherwise it prints the literal pair structures.
