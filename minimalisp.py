@@ -48,7 +48,10 @@ class Pair(MinimalispType):
         assert value != self, "cannot add a pair to itself."
         if self.left == None:
             self.left = value
-        try:
+	    return
+        
+        assert id(value) != id(self.left), "tried to add the left of a pair to the right, parser error."
+	try:
             assert self.right == None, "tried to set next on a completed pair"
         except AssertionError:
             print("error in pair construction, %s cannot be extended." % repr(self))
@@ -151,7 +154,7 @@ def parse(source):
         commentless_lines.append(previous_string)
 
     # count a \n as a space for the purposes of syntax
-    text = ' '.join(commentless_lines)
+    text = ' '.join(commentless_lines).strip()
     
     buffer_index = 0
     buffer_length = len(text)
@@ -183,7 +186,8 @@ def parse(source):
             
             # if we're already in an S-expression context, we need to add this 
             # pair to the left of a new non-quoted pair in the S-expression.
-            if context['sexpr_level']:
+            if context['parent'] is not None:
+                print("foo")
                 spair = Pair()
                 spair.set_left(pair)
                 context['pair'].set_right(spair)
@@ -220,6 +224,8 @@ def parse(source):
             if context['pair'].is_empty():
                 context['pair'] = NIL()
             
+            sexpr_was = context['sexpr_level']
+            orig_parent = context
             # unwind any S-expr contexts.
             while context['sexpr_level']:
                 context = context['parent']
@@ -562,9 +568,10 @@ if __name__ == "__main__":
     if parse_only:
         print("parsed stdin successfully. program:")
         cursor = program
-        while cursor is not NIL:
+        while type(cursor) is not NIL:
             print(repr(cursor.left))
             cursor = cursor.right
         exit(0)
 
     run(program)
+
