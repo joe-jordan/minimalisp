@@ -20,6 +20,12 @@ def crepr(s):
         return '"' + prepr[1:-1].replace("\\'", "'").replace('"', '\\"') + '"'
 
 
+def lrepr(s):
+    if isinstance(s, str):
+        return crepr(s)
+    return repr(s)
+
+
 class MinimalispType(object):
     pass
 
@@ -42,7 +48,11 @@ class Pair(MinimalispType):
         assert value != self, "cannot add a pair to itself."
         if self.left == None:
             self.left = value
-        assert self.right == None, "tried to set next on a completed pair"
+        try:
+            assert self.right == None, "tried to set next on a completed pair"
+        except AssertionError:
+            print("error in pair construction, %s cannot be extended." % repr(self))
+            raise
         self.right = value
     
     def set_left(self, new_left):
@@ -79,9 +89,18 @@ class Symbol(MinimalispType):
     - can therefore be used as a dict key."""
     def __init__(self, s):
         self.s = s.upper()
-    
+
+    def __eq__(self, other):
+        if other is not Symbol:
+            return False
+        if self.s == other.s:
+            return True
+
     def __repr__(self):
         return self.s
+
+    def __hash__(self):
+        return hash(self.s)
 
 
 class Value(MinimalispType):
@@ -109,9 +128,9 @@ HEXANUMERIC = NUMERIC + "ABCDEF"
 
 STRINGY = '"'
 
-def parse():
-    lines = [line.strip() for line in fileinput.input()]
-    
+def parse(source):
+    lines = [line.strip() for line in source.split('\n')]
+
     # in theory, this should be done with a RE. however, expressing "an even
     # number of non-escaped double quotes, followed by a semicolon" as a regex
     # is more of a headache than it is worth.
@@ -130,13 +149,15 @@ def parse():
             previous_string += ';' + splits.pop()
         
         commentless_lines.append(previous_string)
-    
-    text = ''.join(commentless_lines)
+
+    # count a \n as a space for the purposes of syntax
+    text = ' '.join(commentless_lines)
     
     buffer_index = 0
     buffer_length = len(text)
     
-    assert text[buffer_index] in BEGIN_PAIR, "not a minimalisp program"
+    assert text[buffer_index] in BEGIN_PAIR, "not a minimalisp program (error near %s)" % \
+                                             text[buffer_index:buffer_index+10]
     
     pairs = []
     
@@ -155,7 +176,8 @@ def parse():
             if text[buffer_index] in BEGIN_QUOTED_PAIR:
                 pair = Pair(quoted=True)
                 buffer_index += 1
-                assert text[buffer_index] in BEGIN_PAIR, "quote not followed by an open parenthesis."
+                assert text[buffer_index] in BEGIN_PAIR, "quote not followed by an open parenthesis near %s." % \
+                                                         text[buffer_index:buffer_index+10]
             else:
                 pair = Pair()
             
@@ -204,7 +226,11 @@ def parse():
             
             try:
                 if context['pair'] not in context['parent']['pair']:
-                    context['parent']['pair'].set_next(context['pair'])
+                    try:
+                        context['parent']['pair'].set_next(context['pair'])
+                    except AssertionError:
+                        print("parser error near %s" % text[buffer_index-10:buffer_index+10])
+                        raise
             except KeyError:
                 # if this is the root file scope, we just append to the list of statements.
                 pairs.append(context['pair'])
@@ -317,24 +343,228 @@ def parse():
         buffer_index += 1
     
     assert context['parent'] == None, "parentheses not matched."
-    
+
+    # convert a python list of pairs to an S-expression.
+    program = Pair()
+    program.set_left(pairs[0])
+
+    cursor = program
+
+    for p in pairs[1:]:
+        cursor.set_right(Pair())
+        cursor = cursor.right
+        cursor.set_left(p)
+
     Pair.fixall()
     
-    return pairs
+    return program
 
+
+class Context(dict):
+    """stack-like dictionary."""
+    def __init__(self, *args, **kwargs):
+        # default arg that can only be specified by keyword. Python 3 fixes this problem.
+        parent = kwargs.pop('parent', None)
+        self.parent = parent
+        super(Context, self).__init__(*args, **kwargs)
+
+    def __getitem__(self, key):
+        try:
+            return super(Context, self).__getitem__(key)
+        except KeyError:
+            if self.parent is None:
+                raise
+
+        return self.parent[key]
+
+
+class LispRuntimeError(BaseException):
+    pass
+
+# evaluate - should be an object or a pair.
+def peval(o, context):
+    # if object is literal or quoted:
+    if o is Value or (o is Pair and o.quoted):
+        return o
+
+    # if object is a bound symbol, substitute its value:
+    if o is Symbol:
+        return context[o]
+
+    # if o is a function:
+    if o is LispFunction:
+        raise LispRuntimeError("cannot evaluate a function")
+
+    # in other cases, o must be a pair.
+    if not isinstance(o, Pair):
+        raise LispRuntimeError("cannot evaluate %s", o)
+    pair = o
+
+    # in which case, if we have been asked to run a function!
+    if pair.left is not Symbol:
+        raise LispRuntimeError("not a symbol %s" % pair.left)
+
+    try:
+        function = context[pair.left]
+    except KeyError:
+        raise LispRuntimeError("unbound symbol %s" % pair.left)
+
+    if function is not LispFunction:
+        raise LispRuntimeError("symbol %s is not bound to a function, but %s" % (repr(pair.left), repr(function)))
+
+    return function.execute(pair.right, context)
+
+
+class LispFunction(MinimalispType):
+    pass
+
+
+class UserLispFunction(LispFunction):
+    def __init__(self, argbindings, functionbody):
+        self.argbindings = argbindings
+
+        # functionbody should be copied into a new head pair, minus the quoted status.
+        self.functionbody = Pair()
+        self.functionbody.set_left(functionbody.left)
+        self.functionbody.set_right(functionbody.right)
+
+    def execute(self, ap, outer_context):
+        # initialise a new context, with arguments bound to names specified (or NIL if none passed):
+        context = Context(parent=outer_context)
+        ab = self.argbindings
+        while ab is not NIL:
+            try:
+                context[ab.left] = ap.left
+            except AttributeError:
+                context[ab.left] = NIL()
+            ab = ab.right
+            try:
+                ap = ap.right
+            except AttributeError:
+                pass
+
+        # eval each line of code in the function:
+        fb = self.functionbody
+        retval = NIL()
+        while fb is not NIL:
+            retval = peval(fb.left, context)
+            fb = fb.right
+
+        return retval
+
+
+class BindFunction(LispFunction):
+    @staticmethod
+    def execute(pair, context):
+        if not isinstance(pair.left, Symbol):
+            raise LispRuntimeError('cannot bind value %s to non-symbol %s' % (repr(pair.right), repr(pair.left)))
+        context[pair.left] = peval(pair.right, context)
+        return NIL()
+
+
+class WithFunction(LispFunction):
+    @staticmethod
+    def execute(pair, context):
+        # unwind with's arguments; two quoted pairs.
+        argbindings = pair.left
+        if argbindings is not Pair or not argbindings.quoted:
+            raise LispRuntimeError('with arg1 not satisfied, %s is not a quoted list.' % repr(argbindings))
+
+        pair = pair.right
+        functionbody = pair.left
+        if functionbody is not Pair or not functionbody.quoted:
+            raise LispRuntimeError('with arg2 not satisfied, %s is not a quoted list.' % repr(functionbody))
+
+        if pair.right is not NIL:
+            raise LispRuntimeError('with does not take an arg3; %s passed.' % repr(pair.right))
+
+        # actually build the LispFunction object:
+        return UserLispFunction(argbindings, functionbody)
+
+
+class PutsFunction(LispFunction):
+    @staticmethod
+    def execute(pair, context):
+        value = peval(pair.left, context)
+        print(repr(value))
+        return NIL()
+
+
+lib = {
+    'bind': BindFunction(),
+    'with': WithFunction(),
+    'puts': PutsFunction(),
+    # 'gets': GetsFunction(),
+    # 'eval': EvalFunction(),
+    # 'cons': ConsFunction(),
+    # 'car': CarFunction(),
+    # 'cdr': CdrFunction(),
+    # '+': PlusFunction(),
+    # '-': MinusFunction(),
+    # '*': MultiplyFunction(),
+    # '/': DivideFunction(),
+    # '%': ModuloFunction(),
+    # '.': ConcatinateFunction(),
+    # 'pos': PositionFunction(),
+    # 'if': IfFunction(),
+    # 'or': OrFunction(),
+    # 'and': AndFunction(),
+    # '>': GreaterThanFunction(),
+    # '<': LessThanFunction(),
+    # '=': EqualFunction(),
+    # '==': IndenticalFunction()
+}
+
+# math = {
+#     'sin': SinFunction(),
+#     'cos': CosFunction(),
+#     'tan': TanFunction(),
+#     'asin': AsinFunction(),
+#     'acos': AcosFunction(),
+#     'atan': AtanFunction(),
+#     'atan2': Atan2Function(),
+#     'ln': LnFunction(),
+#     'log2': Log2Function(),
+#     'log10': Log10Function()
+# }
 
 def run(program):
-    pass
+    outer_context = Context(lib)
+
+    UserLispFunction(NIL(), program).execute(NIL(), outer_context)
 
 
 if __name__ == "__main__":
     import pycatch
     pycatch.enable(ipython=True)
+
+    import sys
+    parse_only = sys.argv[1:] and sys.argv[1] == '-p'
+
+    possible_fn = 1
+    if parse_only:
+        possible_fn = 2
+
+    source = None
+
+    try:
+        if sys.argv[1:]:
+            fn = sys.argv[possible_fn]
+            source = open(fn, 'r').read()
+    except IndexError:
+        pass
+
+    if source is None:
+        source = '\n'.join([line for line in fileinput.input()])
     
-    program = parse()
-    
-    for p in program:
-        print(repr(p))
-    
+    program = parse(source)
+
+    if parse_only:
+        print("parsed stdin successfully. program:")
+        cursor = program
+        while cursor is not NIL:
+            print(repr(cursor.left))
+            cursor = cursor.right
+        exit(0)
+
     run(program)
-    
