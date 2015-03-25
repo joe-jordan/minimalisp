@@ -10,7 +10,7 @@
        '((puts input)
          (puts values)
          (puts five); works, because five is inherited from outer scope)
-)
+))
  5 15)
 
 ; input and values are now out of scope, and cannot be accessed:
