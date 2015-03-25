@@ -33,6 +33,8 @@ The author hypothesises that this should make the runtime faster, since we will 
 
 ### Current Status
 
+*I've started a re-write because of a bug in the first parser that was too complex to solve. The new part of it is done, and I'm going to port over all the cool token parsing that was working (for numeric types, etc) next, so that we're exactly where we were. I have also written the start of the VM, but that's not testable until the parser works with the `with` and `bind` statements.*
+
 The code is currently implemented in Python, and incomplete. The first checked-in version parses source files and builds the appropriate pair-based data structures (and prints these structures out for verification) before exiting. It should be able to throw errors for invalid syntax. it currently supports:
 
 * integers and floats -> stored as python primitives, so bignum support for free!
