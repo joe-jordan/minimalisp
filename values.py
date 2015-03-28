@@ -4,7 +4,7 @@ class NIL(object):
         return 'NIL'
 
 def crepr(s):
-    assert isinstance(s, str), "crepr is for strings, i.e. str() instances."
+    assert type(s) is str, "crepr is for strings, i.e. str() instances."
     prepr = repr(s)
     if prepr[:3] == '"""':
         # anything goes, need to manually escape everything.
@@ -17,7 +17,7 @@ def crepr(s):
 
 
 def lrepr(s):
-    if isinstance(s, str):
+    if type(s) is str:
         return crepr(s)
     return repr(s)
 
@@ -33,7 +33,7 @@ class Symbol(MinimalispType):
         self.quoted = quoted
 
     def __eq__(self, other):
-        if other is not Symbol:
+        if type(other) is not Symbol:
             return False
         if self.s == other.s:
             return True
