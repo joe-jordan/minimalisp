@@ -164,14 +164,10 @@ def parse_tokens(s):
 def do_pair_literals(s):
     for i, t in enumerate(s):
         if type(t) == sexpr:
+            do_pair_literals(t)
+
             if len(t) == 3 and t[1] == PAIR_LITERAL:
-                if type(t[0]) == sexpr:
-                    do_pair_literals(t[0])
-                if type(t[2]) == sexpr:
-                    do_pair_literals(t[2])
                 s[i] = Pair(t[0], t[2], t.quoted)
-            else:
-                do_pair_literals(t)
 
 
 def sexprs_to_pairs(s):
