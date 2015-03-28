@@ -9,9 +9,8 @@
 ((with '(input values)
        '((puts input)
          (puts values)
-         (puts five); works, because five is inherited from outer scope)
-))
- 5 15)
+         (puts five)) ; works, because five is inherited from outer scope
+ ) 5 15)
 
 ; input and values are now out of scope, and cannot be accessed:
 ; (puts input) ; throws an error, halts execution.
@@ -34,7 +33,7 @@
 ; define an anonymous function, which reuses the outer context, and store it in a variable
 (bind anon '((puts myfunc)
              (puts retval)
-             (* retval 2))
+             (* retval 2)))
 
 ; run the anonymous function and print the return value
 (puts (eval anon))

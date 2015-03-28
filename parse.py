@@ -54,7 +54,7 @@ def clever_split(inp):
             # while the quotes are escaped:
             while this_string[-1] == "\\":
                 assert len(splits) > 0, "string on line %d is not terminated correctly." % i
-                this_string = this_string[:-1] + '"' + splits.pop(0)
+                this_string = this_string[:-1] + '\\"' + splits.pop(0)
             # we've got to the end of this string, add it as its own token:
             tokens.append('"' + this_string + '"')
 
@@ -99,67 +99,14 @@ def parse(inp):
     return output_list
 
 
-class NIL(object):
-    def __repr__(self):
-        return 'NIL'
-
-def crepr(s):
-    assert isinstance(s, str), "crepr is for strings, i.e. str() instances."
-    prepr = repr(s)
-    if prepr[:3] == '"""':
-        # anything goes, need to manually escape everything.
-        raise NotImplementedError("not implemented for this repr type.")
-    elif prepr[0] == '"':
-        return prepr
-    else:
-        assert prepr[0] == "'", "unknown repr output from python."
-        return '"' + prepr[1:-1].replace("\\'", "'").replace('"', '\\"') + '"'
-
-
-def lrepr(s):
-    if isinstance(s, str):
-        return crepr(s)
-    return repr(s)
-
-
-class MinimalispType(object):
-    pass
-
-class Symbol(MinimalispType):
-    """only stores its text representation as a python string in upper case
-    - can therefore be used as a dict key."""
-    def __init__(self, s):
-        self.s = s.upper()
-
-    def __eq__(self, other):
-        if other is not Symbol:
-            return False
-        if self.s == other.s:
-            return True
-
-    def __repr__(self):
-        return self.s
-
-    def __hash__(self):
-        return hash(self.s)
-
-
-class Value(MinimalispType):
-    """stored simply as the relevant python type (string, int or float)."""
-    def __init__(self, v):
-        self.v = eval(v)
-    
-    def __repr__(self):
-        if isinstance(self.v, str):
-            return crepr(self.v)
-        else:
-            return repr(self.v)
-
-
 PAIR_SEPARATOR = '.'
 
-class PAIR_LITERAL(object):
-    pass
+class PAIR_LITERALS(object):
+    def __repr__(self):
+        return '.'
+
+PAIR_LITERAL = PAIR_LITERALS()
+
 
 NUMERIC = "0123456789"
 BEGIN_HEXANUMERIC = "#"
@@ -168,6 +115,8 @@ STRINGY = '"'
 
 DUBIOUS = "+-"
 ALLOWED_IN_NUMERIC = NUMERIC + DUBIOUS + "eE."
+
+from values import Value, Symbol, NIL, Pair
 
 def parse_token(t):
     char1 = t[0]
@@ -191,8 +140,7 @@ def parse_token(t):
         assert all([c in HEXANUMERIC for c in t[1:]]), "token %s contains invalid characters for a hexadecimal literal." % t
         t = t.replace('#', '0x')
         v = Value(t)
-    elif char1 in PAIR_SEPARATOR:
-        assert len(t) == 1, "token %s is invalid: cannot use . at the start of a symbol or literal." % t
+    elif char1 in PAIR_SEPARATOR and len(t) == 1:
         v = PAIR_LITERAL
     else:
         if t.upper() == "NIL":
@@ -202,7 +150,60 @@ def parse_token(t):
     return v
 
 
-def parse_program(p):
+def parse_tokens(s):
+    for i, t in enumerate(s):
+        if type(t) == sexpr:
+            parse_tokens(t)
+            continue
+        s[i] = parse_token(t)
+        if s[i] == PAIR_LITERAL:
+            assert i == 1 and len(s) == 3, "incorrect context for a pair literal, %s." % repr(s)
 
+
+# bugged: needs to return something, or be able to assign back to outer list somehow.
+def do_pair_literals(s):
+    for i, t in enumerate(s):
+        if type(t) == sexpr:
+            if len(t) == 3 and t[1] == PAIR_LITERAL:
+                if type(t[0]) == sexpr:
+                    do_pair_literals(t[0])
+                if type(t[2]) == sexpr:
+                    do_pair_literals(t[2])
+                s[i] = Pair(t[0], t[2], t.quoted)
+            else:
+                do_pair_literals(t)
+
+
+def sexprs_to_pairs(s):
+    for i, t in enumerate(s):
+        if type(t) == sexpr:
+            s[i] = sexprs_to_pairs(t)
+        elif type(t) == Pair:
+            # was specified as a pair literal in the source, may contain s-expressions inside.
+            if type(t.left) == sexpr:
+                t.left = sexprs_to_pairs(t.left)
+            if type(t.right) == sexpr:
+                t.right = sexprs_to_pairs(t.right)
+    assert all([type(t) is not sexpr for t in s]), "programming error in parser."
+    return Pair.pair_list_from_sexpr(s, s.quoted)
+
+
+def parse_program(inp):
+   prog = parse(inp)
+
+   # now recursively walk over all s-expressions, building tokens into Values, Symbols, and Pair Separator placeholders.
+   parse_tokens(prog)
+
+   print "intermediate repr:"
+   print repr(prog)
+
+   # identify any pair literals and instantiate those first:
+   do_pair_literals(prog)
+
+   # finally, build actual Pairs for all the proper S-expressions:
+   prog = sexprs_to_pairs(prog)
+
+   print "final repr:"
+   return prog
 
 
