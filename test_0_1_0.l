@@ -37,3 +37,15 @@
 
 ; run the anonymous function and print the return value
 (puts (eval anon))
+
+(bind ++ (with '(i) '(+ i 1)))
+
+; bind a symbol *to a symbol*, rather than the current value of the symbol.
+(bind myreference 'five)
+
+(puts (eval myreference)) ; 5
+
+(bind five (++ five))
+
+(puts (eval myreference)) ; 6
+

@@ -28,8 +28,9 @@ class MinimalispType(object):
 class Symbol(MinimalispType):
     """only stores its text representation as a python string in upper case
     - can therefore be used as a dict key."""
-    def __init__(self, s):
+    def __init__(self, s, quoted=False):
         self.s = s.upper()
+        self.quoted = quoted
 
     def __eq__(self, other):
         if other is not Symbol:
@@ -38,6 +39,8 @@ class Symbol(MinimalispType):
             return True
 
     def __repr__(self):
+        if self.quoted:
+            return "'" + self.s
         return self.s
 
     def __hash__(self):

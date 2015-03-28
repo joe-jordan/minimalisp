@@ -145,6 +145,8 @@ def parse_token(t):
     else:
         if t.upper() == "NIL":
             v = NIL()
+        elif t[0] in "'":
+            v = Symbol(t[1:], True)
         else:
             v = Symbol(t)
     return v
@@ -160,7 +162,6 @@ def parse_tokens(s):
             assert i == 1 and len(s) == 3, "incorrect context for a pair literal, %s." % repr(s)
 
 
-# bugged: needs to return something, or be able to assign back to outer list somehow.
 def do_pair_literals(s):
     for i, t in enumerate(s):
         if type(t) == sexpr:
