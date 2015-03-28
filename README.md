@@ -31,9 +31,11 @@ Since we only want to actually evaluate one of the two clauses, we must pass the
 
 The author hypothesises that this should make the runtime faster, since we will not need to climb up the expression tree looking for magic functions before internal calls to `eval` - the information about whether execution is deferred or not is stored directly on the code data from the start.
 
+The idea is to provide all functions that *cannot* be implemented in the laguage itself easily as standard library, particularly `bind` and `with` (for binding values to symbols and creating contexts, which function as a stack) and `puts`, `gets`, `cons`, `car`, `cdr`, plus the arithmetic and comparisons `+`, `-` and so on, and `if`. There may later be a math library which allows use of `sin` and `ln` and the like, for convinience.
+
 ### Current Status
 
-*I've started a re-write because of a bug in the first parser that was too complex to solve. The new part of it is done, and I'm going to port over all the cool token parsing that was working (for numeric types, etc) next, so that we're exactly where we were. I have also written the start of the VM, but that's not testable until the parser works with the `with` and `bind` statements.*
+Ignoring `minimalisp.py`, we have a functioning parser in `parse.py` and `values.py`, which can be tested on the `*.l` example files with `test_parse.py`.
 
 The code is currently implemented in Python, and incomplete. The first checked-in version parses source files and builds the appropriate pair-based data structures (and prints these structures out for verification) before exiting. It should be able to throw errors for invalid syntax. it currently supports:
 
@@ -47,7 +49,8 @@ The code is currently implemented in Python, and incomplete. The first checked-i
 * literal (dotted) pairs are parsed and stored correctly
 * nil or NIL correctly interpreted as a NIL object.
 * symbols are correctly detected in tricky cases, e.g. `+five` is a symbol, where `+5` is an integer.
+* symbols can be quoted 'five is "the quoted symbol FIVE", which is not a symbol with a quote in it, 'FIVE.
 
 TODO:
 
-actually write the runtime code, with a Lisp stack that is independent of the Python stack.
+Write a full reference implementation VM. The original goal of a Lisp stack that is independent of the Python stack may be resurrected in a future version, or perhaps in the optimised (probably C) version.
