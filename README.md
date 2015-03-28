@@ -3,7 +3,7 @@ minimalisp
 
 Minimalist Lisp Implementation (initially in Python, will be ported to C).
 
-The goal of minimalisp is to create a very very lightweight Lisp implementation with (opinion)*proper*(/opinion) code deferral syntax. It is minimal in that it should have almost no standard library beyond that necessary to use the function structure (`defun`), logic (`if`, etc), numbers, strings and `eval`. Nontrivial mathematical functions (`sin`, `cos`, perhaps some others) may also be added at some point, as well as functions to load and store S-expressions to and from text files.
+The goal of minimalisp is to create a very very lightweight Lisp implementation with (opinion)*proper*(/opinion) code deferral syntax. It is minimal in that it should have almost no standard library beyond that necessary to use function definition and value types.
 
 The reason for choosing to implement such a small subset of lisp functionality is to allow a very very efficient parser and runtime, and to make code generation simple &mdash; the ideal use case for this language would be [Genetic Programming](http://en.wikipedia.org/wiki/Genetic_programming).
 
@@ -49,7 +49,8 @@ The code is currently implemented in Python, and incomplete. The first checked-i
 * literal (dotted) pairs are parsed and stored correctly
 * nil or NIL correctly interpreted as a NIL object.
 * symbols are correctly detected in tricky cases, e.g. `+five` is a symbol, where `+5` is an integer.
-* symbols can be quoted 'five is "the quoted symbol FIVE", which is not a symbol with a quote in it, 'FIVE.
+* symbols can be quoted `'five` is "the quoted symbol `FIVE`", which is not a symbol with a quote at the start, `'FIVE`, which is disallowed.
+* however, symbols MAY contain some special characters - `'` is allowed anywhere but the start, and `.` is not excluded. In order to define a pair literal, one must put spaces before and after a `.`.
 
 TODO:
 
