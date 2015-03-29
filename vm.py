@@ -2,6 +2,8 @@ from __future__ import print_function
 
 from values import NIL, MinimalispType, Symbol, Value, Pair
 
+from parse import parse_token_prompt 
+
 class Context(dict):
     """stack-like dictionary."""
     def __init__(self, *args, **kwargs):
@@ -104,7 +106,7 @@ class BindFunction(LispFunction):
     @staticmethod
     def execute(pair, context):
         if not isinstance(pair.left, Symbol):
-            raise LispRuntimeError('cannot bind value %s to non-symbol %s' % (repr(pair.right), repr(pair.left)))
+            raise LispRuntimeError('cannot bind value %s to non-symbol %s' % (repr(pair.right.left), repr(pair.left)))
         # we haven't done any of the fancy argument retrieval, so just pair.right.left will have to do
         # for this hard-coded number of arguments.
         context[pair.left] = peval(pair.right.left, context)
@@ -142,11 +144,33 @@ class PutsFunction(LispFunction):
         return NIL()
 
 
+class GetsFunction(LispFunction):
+    @staticmethod
+    def execute(pair, context):
+        # if called with no arguments, returns a single gets.
+        if isinstance(pair.left, NIL):
+            return parse_token_prompt(raw_input(">"))
+
+        # with arguments, binds N gets' to them.
+        symbols_to_bind = [pair.left]
+        while not isinstance(pair.right, NIL):
+            pair = pair.right
+            symbols_to_bind.append(pair.left)
+
+        for s in symbols_to_bind:
+            assert isinstance(s, Symbol), "GETS: cannot bind to non-symbol %s." % repr(s)
+
+            context[s] = parse_token_prompt(raw_input("%s>" % repr(s)))
+
+        return NIL()
+
+
+
 lib = {
     Symbol('bind'): BindFunction(),
     Symbol('with'): WithFunction(),
     Symbol('puts'): PutsFunction(),
-    # 'gets': GetsFunction(),
+    Symbol('gets'): GetsFunction(),
     # 'eval': EvalFunction(),
     # 'cons': ConsFunction(),
     # 'car': CarFunction(),

@@ -134,7 +134,6 @@ def parse_token(t):
         assert all([c in ALLOWED_IN_NUMERIC for c in t]), "token %s contains invalid characters to be a numeric literal." % t
         v = Value(t)
     elif char1 in STRINGY:
-
         v = Value(t)
     elif char1 in BEGIN_HEXANUMERIC:
         assert all([c in HEXANUMERIC for c in t[1:]]), "token %s contains invalid characters for a hexadecimal literal." % t
@@ -149,6 +148,14 @@ def parse_token(t):
             v = Symbol(t[1:], True)
         else:
             v = Symbol(t)
+    return v
+
+def parse_token_prompt(t):
+    v = parse_token(t)
+    if v == PAIR_LITERAL:
+        return Value('"."')
+    elif isinstance(v, Symbol):
+        return Value('"%s"' % t)
     return v
 
 
