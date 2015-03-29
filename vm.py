@@ -45,17 +45,21 @@ def peval(o, context):
     pair = o
 
     # in which case, if we have been asked to run a function!
-    # note that if pair.left is a pair, it is important to eval it and check we get a function, rather than dying here.
-    if not isinstance(pair.left, Symbol):
-        raise LispRuntimeError("not a symbol %s" % pair.left)
+    # note that if 
+    if isinstance(pair.left, Symbol):
+        try:
+            function = context[pair.left]
+        except KeyError:
+            raise LispRuntimeError("unbound symbol %s" % pair.left)
 
-    try:
-        function = context[pair.left]
-    except KeyError:
-        raise LispRuntimeError("unbound symbol %s" % pair.left)
+        if not isinstance(function, LispFunction):
+            raise LispRuntimeError("symbol %s is not bound to a function, but %s" % (repr(pair.left), repr(function)))
+    elif isinstance(pair.left, Pair):
+        # pair.left is a pair, it is important to eval it and check we get a function, rather than dying here.
+        function = peval(pair.left, context)
 
-    if not isinstance(function, LispFunction):
-        raise LispRuntimeError("symbol %s is not bound to a function, but %s" % (repr(pair.left), repr(function)))
+        if not isinstance(function, LispFunction):
+            raise LispRuntimeError("result %s cannot be executed as a function" % repr(function))
 
     return function.execute(pair.right, context)
 
@@ -112,15 +116,15 @@ class WithFunction(LispFunction):
     def execute(pair, context):
         # unwind with's arguments; two quoted pairs.
         argbindings = pair.left
-        if argbindings is not Pair or not argbindings.quoted:
+        if not isinstance(argbindings, Pair) or not argbindings.quoted:
             raise LispRuntimeError('with arg1 not satisfied, %s is not a quoted list.' % repr(argbindings))
 
         pair = pair.right
         functionbody = pair.left
-        if functionbody is not Pair or not functionbody.quoted:
+        if not isinstance(functionbody, Pair) or not functionbody.quoted:
             raise LispRuntimeError('with arg2 not satisfied, %s is not a quoted list.' % repr(functionbody))
 
-        if pair.right is not NIL:
+        if not isinstance(pair.right, NIL):
             raise LispRuntimeError('with does not take an arg3; %s passed.' % repr(pair.right))
 
         # actually build the LispFunction object:
