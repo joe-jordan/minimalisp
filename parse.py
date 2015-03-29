@@ -191,16 +191,12 @@ def parse_program(inp):
    # now recursively walk over all s-expressions, building tokens into Values, Symbols, and Pair Separator placeholders.
    parse_tokens(prog)
 
-   print "intermediate repr:"
-   print repr(prog)
-
    # identify any pair literals and instantiate those first:
    do_pair_literals(prog)
 
    # finally, build actual Pairs for all the proper S-expressions:
    prog = sexprs_to_pairs(prog)
 
-   print "final repr:"
    return prog
 
 
