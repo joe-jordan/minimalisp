@@ -49,8 +49,11 @@ class Symbol(MinimalispType):
 
 class Value(MinimalispType):
     """stored simply as the relevant python type (string, int or float)."""
-    def __init__(self, v):
-        self.v = eval(v)
+    def __init__(self, v, actual=False):
+        if actual:
+            self.v = v
+        else:
+            self.v = eval(v)
     
     def __repr__(self):
         if isinstance(self.v, str):
