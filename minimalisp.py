@@ -4,6 +4,8 @@ from __future__ import print_function
 
 from parse import parse_program
 
+from values import NIL
+
 from vm import run
 
 if __name__ == "__main__":
@@ -35,7 +37,7 @@ if __name__ == "__main__":
     if parse_only:
         print("parsed %s successfully. resulting program:" % fn if fn else "stdin")
         cursor = program
-        while type(cursor) is not NIL:
+        while not isinstance(cursor, NIL):
             print(repr(cursor.left))
             cursor = cursor.right
         exit(0)
