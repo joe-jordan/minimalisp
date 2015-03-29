@@ -83,9 +83,14 @@ class UserLispFunction(LispFunction):
         ab = self.argbindings
         while type(ab) is not NIL:
             try:
-                context[ab.left] = ap.left
+                if isinstance(ap.left, Symbol) and not ap.left.quoted:
+                    context[ab.left] = context[ap.left]
+                else:
+                    context[ab.left] = ap.left
             except AttributeError:
                 context[ab.left] = NIL()
+            except KeyError:
+                raise ValueError("cannot bind argument %s which is unbound in outer scope." % repr(ap.left))
             ab = ab.right
             try:
                 ap = ap.right
