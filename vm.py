@@ -134,8 +134,11 @@ class WithFunction(LispFunction):
 class PutsFunction(LispFunction):
     @staticmethod
     def execute(pair, context):
-        value = peval(pair.left, context)
-        print(repr(value))
+        values = [peval(pair.left, context)]
+        while not isinstance(pair.right, NIL):
+            pair = pair.right
+            values.append(peval(pair.left, context))
+        print("".join([repr(value) for value in values]))
         return NIL()
 
 
