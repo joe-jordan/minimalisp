@@ -170,6 +170,60 @@ class GetsFunction(LispFunction):
         return NIL()
 
 
+class NoArgumentsPassedError(BaseException):
+    pass
+
+
+class NonNumericValueError(BaseException):
+    def __init__(self, *args, **kwargs):
+        self.t = kwargs.pop('t')
+        super(NonNumericValueError, self).__init__(*args, **kwargs)
+
+
+class NumericFunction(LispFunction):
+    @staticmethod
+    def execute(pair, context):
+        terms = []
+        while not isinstance(pair, NIL):
+            terms.append(peval(pair.left, context))
+            pair = pair.right
+
+        if not terms:
+            raise NoArgumentsPassedError() 
+
+        for t in terms:
+            if not isinstance(t, Value):
+                raise NonNumericValueError(t=t)
+
+        return terms
+
+
+class PlusFunction(NumericFunction):
+    @staticmethod
+    def execute(pair, context):
+        try:
+            terms = super(PlusFunction, PlusFunction).execute(pair, context)
+        except NoArgumentsPassedError:
+            return Value(0, actual=True)
+        except NonNumericValueError, e:
+            raise ValueError("+: cannot sum non-value %s" % repr(e.t))
+
+        return Value(sum([i.v for i in terms]), actual=True)
+
+
+from operator import mul
+
+class MultiplyFunction(NumericFunction):
+    @staticmethod
+    def execute(pair, context):
+        try:
+            terms = super(MultiplyFunction, MultiplyFunction).execute(pair, context)
+        except NoArgumentsPassedError:
+            return Value(1, actual=True)
+        except NonNumericValueError, e:
+            raise ValueError("*: cannot take product of non-value %s" % repr(e.t))
+
+        return Value(reduce(mul, [i.v for i in terms], 1), actual=True)
 
 lib = {
     Symbol('bind'): BindFunction(),
@@ -180,9 +234,9 @@ lib = {
     # 'cons': ConsFunction(),
     # 'car': CarFunction(),
     # 'cdr': CdrFunction(),
-    # '+': PlusFunction(),
+    Symbol('+'): PlusFunction(),
     # '-': MinusFunction(),
-    # '*': MultiplyFunction(),
+    Symbol('*'): MultiplyFunction(),
     # '/': DivideFunction(),
     # '%': ModuloFunction(),
     # '.': ConcatinateFunction(),
