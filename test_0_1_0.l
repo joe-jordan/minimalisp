@@ -47,8 +47,23 @@
 ; bind a symbol *to a symbol*, rather than the current value of the symbol.
 (bind 'myreference 'five)
 
+; this is eval'd twice: once before being passed to eval (symbol five), and again in eval.
 (puts (eval myreference)) ; 5
 
 (bind 'five (++ five))
 
 (puts (eval myreference)) ; 6
+
+; using cons, car and cdr:
+(bind 'pair (cons #deadb33f "unkempt"))
+
+(puts 'pair)
+(puts (car pair))
+(puts (cdr pair))
+
+; or using pair literals:
+(bind 'pair '(#deadb33f . "unkempt"))
+
+(puts 'pair)
+(puts (car pair))
+(puts (cdr pair))

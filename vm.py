@@ -210,6 +210,38 @@ class GetsFunction(LispFunction):
         return NIL()
 
 
+class ConsFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute
+    def execute(pair, context):
+        left = pair.left
+
+        if isinstance(pair.right, NIL):
+            raise LispRuntimeError("CONS: two arguments are required, only recieved one (%r)" % left)
+
+        pair = pair.right
+        right = pair.left
+
+        if not isinstance(pair.right, NIL):
+            raise LispRuntimeError("CONS: two arguments are required, recieved three: %r, %r, %r" % left, right, pair.right)
+
+        return Pair(left, right)
+
+
+class CarFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute
+    def execute(pair, context):
+        return pair.left.left
+
+
+class CdrFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute
+    def execute(pair, context):
+        return pair.left.right
+
+
 class NoArgumentsPassedError(BaseException):
     pass
 
@@ -386,9 +418,9 @@ lib = {
     Symbol('eval'): EvalFunction(),
     Symbol('puts'): PutsFunction(),
     Symbol('gets'): GetsFunction(),
-    # Symbol('cons'): ConsFunction(),
-    # Symbol('car'): CarFunction(),
-    # Symbol('cdr'): CdrFunction(),
+    Symbol('cons'): ConsFunction(),
+    Symbol('car'): CarFunction(),
+    Symbol('cdr'): CdrFunction(),
     Symbol('+'): PlusFunction(),
     Symbol('-'): MinusFunction(),
     Symbol('*'): MultiplyFunction(),
