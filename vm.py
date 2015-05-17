@@ -213,7 +213,18 @@ class PlusFunction(ValueFunction):
         return Value(sum([i.v for i in terms]), actual=True)
 
 
-from operator import mul
+class MinusFunction(ValueFunction):
+    @staticmethod
+    def execute(pair, context):
+        try:
+            terms = super(MinusFunction, MinusFunction).execute(pair, context)
+        except NoArgumentsPassedError:
+            return Value(0, actual=True)
+        except NonValueError, e:
+            raise ValueError("-: cannot subtract non-value %r" % e.t)
+
+        return Value(terms[0].v - sum([i.v for i in terms[1:]]), actual=True)
+
 
 class MultiplyFunction(ValueFunction):
     @staticmethod
@@ -227,42 +238,109 @@ class MultiplyFunction(ValueFunction):
 
         return Value(reduce(mul, [i.v for i in terms], 1), actual=True)
 
+
+class DivideFunction(ValueFunction):
+    @staticmethod
+    def execute(pair, context):
+        try:
+            terms = super(DivideFunction, DivideFunction).execute(pair, context)
+        except NoArgumentsPassedError:
+            return Value(1, actual=True)
+        except NonValueError, e:
+            raise ValueError("/: cannot divide non-value %r" % e.t)
+
+        # We use python 3's "true division", which gives floats for two int arguments.
+        return Value(terms[0].v / reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
+
+
+class IntegerDivideFunction(ValueFunction):
+    @staticmethod
+    def execute(pair, context):
+        try:
+            terms = super(IntegerDivideFunction, IntegerDivideFunction).execute(pair, context)
+        except NoArgumentsPassedError:
+            return Value(1, actual=True)
+        except NonValueError, e:
+            raise ValueError("i/: cannot divide non-value %r" % e.t)
+        for i in terms:
+            if not isinstance(i.v, (int, long)):
+                raise ValueError("i/: cannot integer divide non-integer %r" % i)
+
+        # We use python 3's "true division", which gives floats for two int arguments.
+        return Value(terms[0].v // reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
+
+
+class ModuloFunction(ValueFunction):
+    @staticmethod
+    def execute(pair, context):
+        try:
+            terms = super(ModuloFunction, ModuloFunction).execute(pair, context)
+        except NoArgumentsPassedError:
+            return Value(1, actual=True)
+        except NonValueError, e:
+            raise ValueError("%: cannot modulo non-value %r" % e.t)
+        for i in terms:
+            if not isinstance(i.v, (int, long)):
+                raise ValueError("%: cannot modulo non-integer %r" % i)
+
+        # We use python 3's "true division", which gives floats for two int arguments.
+        return Value(terms[0].v % reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
+
+
+class ConcatinateFunction(ValueFunction):
+    @staticmethod
+    def execute(pair, context):
+        try:
+            terms = super(ModuloFunction, ModuloFunction).execute(pair, context)
+        except NoArgumentsPassedError:
+            return Value(1, actual=True)
+        except NonValueError, e:
+            raise ValueError("%: cannot modulo non-value %r" % e.t)
+        for i in terms:
+            if not isinstance(i.v, (int, long)):
+                raise ValueError("%: cannot modulo non-integer %r" % i)
+
+        # We use python 3's "true division", which gives floats for two int arguments.
+        return Value(terms[0].v % reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
+
+
 lib = {
     Symbol('bind'): BindFunction(),
     Symbol('with'): WithFunction(),
     Symbol('puts'): PutsFunction(),
     Symbol('gets'): GetsFunction(),
-    # 'eval': EvalFunction(),
-    # 'cons': ConsFunction(),
-    # 'car': CarFunction(),
-    # 'cdr': CdrFunction(),
+    # Symbol('eval'): EvalFunction(),
+    # Symbol('cons'): ConsFunction(),
+    # Symbol('car'): CarFunction(),
+    # Symbol('cdr'): CdrFunction(),
     Symbol('+'): PlusFunction(),
-    # '-': MinusFunction(),
+    Symbol('-'): MinusFunction(),
     Symbol('*'): MultiplyFunction(),
-    # '/': DivideFunction(),
-    # '%': ModuloFunction(),
-    # '.': ConcatinateFunction(),
-    # 'pos': PositionFunction(),
-    # 'if': IfFunction(),
-    # 'or': OrFunction(),
-    # 'and': AndFunction(),
-    # '>': GreaterThanFunction(),
-    # '<': LessThanFunction(),
-    # '=': EqualFunction(),
-    # '==': IndenticalFunction()
+    Symbol('/'): DivideFunction(),
+    Symbol('i/'): IntegerDivideFunction(),
+    Symbol('%'): ModuloFunction(),
+    # Symbol('.'): ConcatinateFunction(),
+    # Symbol('pos'): PositionFunction(),
+    # Symbol('if'): IfFunction(),
+    # Symbol('or'): OrFunction(),
+    # Symbol('and'): AndFunction(),
+    # Symbol('>'): GreaterThanFunction(),
+    # Symbol('<'): LessThanFunction(),
+    # Symbol('='): EqualFunction(),
+    # Symbol('=='): IndenticalFunction()
 }
 
 # math = {
-#     'sin': SinFunction(),
-#     'cos': CosFunction(),
-#     'tan': TanFunction(),
-#     'asin': AsinFunction(),
-#     'acos': AcosFunction(),
-#     'atan': AtanFunction(),
-#     'atan2': Atan2Function(),
-#     'ln': LnFunction(),
-#     'log2': Log2Function(),
-#     'log10': Log10Function()
+#     Symbol('sin'): SinFunction(),
+#     Symbol('cos'): CosFunction(),
+#     Symbol('tan'): TanFunction(),
+#     Symbol('asin'): AsinFunction(),
+#     Symbol('acos'): AcosFunction(),
+#     Symbol('atan'): AtanFunction(),
+#     Symbol('atan2'): Atan2Function(),
+#     Symbol('ln'): LnFunction(),
+#     Symbol('log2'): Log2Function(),
+#     Symbol('log10'): Log10Function()
 # }
 
 def run(program):
