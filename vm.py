@@ -1,8 +1,10 @@
-from __future__ import print_function
+from __future__ import print_function, division
 
 from values import NIL, MinimalispType, Symbol, Value, Pair
 
-from parse import parse_token_prompt 
+from parse import parse_token_prompt
+
+from operator import mul
 
 class Context(dict):
     """stack-like dictionary."""
