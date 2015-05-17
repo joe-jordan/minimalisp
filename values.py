@@ -35,8 +35,7 @@ class Symbol(MinimalispType):
     def __eq__(self, other):
         if type(other) is not Symbol:
             return False
-        if self.s == other.s:
-            return True
+        return self.s == other.s
 
     def __repr__(self):
         if self.quoted:
@@ -54,7 +53,12 @@ class Value(MinimalispType):
             self.v = v
         else:
             self.v = eval(v)
-    
+
+    def __eq__(self, other):
+        if not isinstance(other, Value):
+            return False
+        return self.v == other.v
+
     def __repr__(self):
         if isinstance(self.v, str):
             return crepr(self.v)
