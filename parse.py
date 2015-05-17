@@ -13,27 +13,27 @@ class sexpr(list):
 
 def remove_comments(inp):
     commentless_lines = []
-    
+
     # kill comment characters ; onwards, when not inside a string.
     for l in inp.split("\n"):
         splits = l.split(';')
         if len(splits) == 1:
             commentless_lines.append(l)
             continue
-        
+
         previous_string = splits.pop(0)
-        
+
         while len(re.findall(r'(?<!\\)"', previous_string)) % 2 != 0:
             previous_string += ';' + splits.pop()
-        
+
         commentless_lines.append(previous_string)
     return "\n".join(commentless_lines)
 
 
 def clever_split(inp):
     commentless_inp = remove_comments(inp)
-    
-    # rather than splitting on all whitespace, we want to split only on 
+
+    # rather than splitting on all whitespace, we want to split only on
     # whitespace not inside a string.
     # strings cannot contain newlines, so start by splitting on those:
     lines = commentless_inp.split("\n")
@@ -45,7 +45,7 @@ def clever_split(inp):
         if len(splits) == 1:
             tokens.extend(l.split())
             continue
-        
+
         # first " can't be escaped.
         tokens.extend(splits.pop(0).split())
 
@@ -64,7 +64,7 @@ def clever_split(inp):
 
     return tokens
 
-    
+
 
 def parse(inp):
     toks = clever_split(inp)
@@ -85,7 +85,7 @@ def parse(inp):
             else:
                 tok = tok[2:]
                 current_list.quoted = True
-                
+
         end_here = 0
         while tok and tok[-1] == ')':
             end_here += 1
@@ -129,7 +129,7 @@ def parse_token(t):
         elif t[1] in NUMERIC:
             # if numeric, just set char1 so that the next section categorises properly.
             char1 = t[1]
-    
+
     if char1 in NUMERIC:
         assert all([c in ALLOWED_IN_NUMERIC for c in t]), "token %s contains invalid characters to be a numeric literal." % t
         v = Value(t)
@@ -205,5 +205,3 @@ def parse_program(inp):
    prog = sexprs_to_pairs(prog)
 
    return prog
-
-
