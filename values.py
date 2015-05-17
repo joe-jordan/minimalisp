@@ -79,10 +79,9 @@ class Pair(MinimalispType):
         if outermost_quoted:
             right.quoted = True
         return right
-    
+
     def __repr__(self):
         q = ""
         if self.quoted:
             q = "'"
         return "%s(%s . %s)" % (q, self.left, self.right)
-
