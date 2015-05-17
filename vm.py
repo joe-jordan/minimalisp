@@ -176,13 +176,13 @@ class NoArgumentsPassedError(BaseException):
     pass
 
 
-class NonNumericValueError(BaseException):
+class NonValueError(BaseException):
     def __init__(self, *args, **kwargs):
         self.t = kwargs.pop('t')
-        super(NonNumericValueError, self).__init__(*args, **kwargs)
+        super(NonValueError, self).__init__(*args, **kwargs)
 
 
-class NumericFunction(LispFunction):
+class ValueFunction(LispFunction):
     @staticmethod
     def execute(pair, context):
         terms = []
@@ -191,16 +191,16 @@ class NumericFunction(LispFunction):
             pair = pair.right
 
         if not terms:
-            raise NoArgumentsPassedError() 
+            raise NoArgumentsPassedError()
 
         for t in terms:
             if not isinstance(t, Value):
-                raise NonNumericValueError(t=t)
+                raise NonValueError(t=t)
 
         return terms
 
 
-class PlusFunction(NumericFunction):
+class PlusFunction(ValueFunction):
     @staticmethod
     def execute(pair, context):
         try:
@@ -215,7 +215,7 @@ class PlusFunction(NumericFunction):
 
 from operator import mul
 
-class MultiplyFunction(NumericFunction):
+class MultiplyFunction(ValueFunction):
     @staticmethod
     def execute(pair, context):
         try:
