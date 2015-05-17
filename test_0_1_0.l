@@ -38,6 +38,10 @@
 ; run the anonymous function and print the return value
 (puts (eval anon))
 
+; EVAL supports lists of S-expressions, or single S expressions.
+(puts (eval '(+ 303 5)))
+
+; as does WITH
 (bind '++ (with '(i) '(+ i 1)))
 
 ; bind a symbol *to a symbol*, rather than the current value of the symbol.

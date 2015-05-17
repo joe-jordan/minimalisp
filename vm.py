@@ -119,39 +119,6 @@ class LispFunction(MinimalispType):
     pass
 
 
-class UserLispFunction(LispFunction):
-    def __init__(self, argbindings, functionbody):
-        # both are unquoted pairs, which WITH will check for us.
-        self.argbindings = argbindings
-        self.functionbody = functionbody
-
-    @instance_pre_execute
-    def execute(self, ap, outer_context):
-        # initialise a new context, with arguments bound to names specified (or NIL if none passed):
-        context = Context(parent=outer_context)
-        ab = self.argbindings
-
-        while type(ab) is not NIL:
-            try:
-                context[ab.left] = ap.left
-            except AttributeError:
-                context[ab.left] = NIL()
-            ab = ab.right
-            try:
-                ap = ap.right
-            except AttributeError:
-                pass
-
-        # eval each line of code in the function:
-        fb = self.functionbody
-        retval = NIL()
-        while type(fb) is not NIL:
-            retval = peval(fb.left, context)
-            fb = fb.right
-
-        return retval
-
-
 class BindFunction(LispFunction):
     @staticmethod
     @static_pre_execute
@@ -171,18 +138,41 @@ class WithFunction(LispFunction):
         # unwind with's arguments; two pairs.
         argbindings = pair.left
         if not isinstance(argbindings, Pair):
-            raise LispRuntimeError('with: input arguments not satisfied, %r is not a quoted list.' % argbindings)
+            raise LispRuntimeError('with: input arguments not satisfied, %r is not an argument list.' % argbindings)
 
         pair = pair.right
         functionbody = pair.left
         if not isinstance(functionbody, Pair):
-            raise LispRuntimeError('with: function body argument not satisfied, %r is not a quoted list.' % functionbody)
+            raise LispRuntimeError('with: function body argument not satisfied, %r is not a function body list.' % functionbody)
+
+        if (not isinstance(functionbody.left, Pair) or isinstance(functionbody.right, NIL) or
+            not isinstance(functionbody.right.left, Pair)):
+            # This is a single line function implementation, escape it appropriately:
+            functionbody = Pair(functionbody, NIL())
 
         if not isinstance(pair.right, NIL):
             raise LispRuntimeError('with does not take a third argument; %r passed.' % pair.right)
 
         # actually build the LispFunction object:
         return UserLispFunction(argbindings, functionbody)
+
+
+class EvalFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute
+    def execute(pair, context):
+        # no fuss, this method does what it says on the tin.
+        retval = NIL()
+
+        # check for a list of instructions:
+        if isinstance(pair.left, Pair) and isinstance(pair.right, NIL):
+            pair = pair.left
+
+        while not isinstance(pair, NIL):
+            retval = peval(pair.left, context)
+            pair = pair.right
+
+        return retval
 
 
 class PutsFunction(LispFunction):
@@ -356,12 +346,45 @@ class ConcatinateFunction(ValueFunction):
         return Value("".join(terms), actual=True)
 
 
+class UserLispFunction(LispFunction):
+    def __init__(self, argbindings, functionbody):
+        # both are unquoted pairs, which WITH will check for us.
+        self.argbindings = argbindings
+        self.functionbody = functionbody
+
+    @instance_pre_execute
+    def execute(self, ap, outer_context):
+        # initialise a new context, with arguments bound to names specified (or NIL if none passed):
+        context = Context(parent=outer_context)
+        ab = self.argbindings
+
+        while type(ab) is not NIL:
+            try:
+                context[ab.left] = ap.left
+            except AttributeError:
+                context[ab.left] = NIL()
+            ab = ab.right
+            try:
+                ap = ap.right
+            except AttributeError:
+                pass
+
+        # eval the function body! We don't use EvalFunction.execute directly
+        fb = self.functionbody
+        retval = NIL()
+        while type(fb) is not NIL:
+            retval = peval(fb.left, context)
+            fb = fb.right
+
+        return retval
+
+
 lib = {
     Symbol('bind'): BindFunction(),
     Symbol('with'): WithFunction(),
+    Symbol('eval'): EvalFunction(),
     Symbol('puts'): PutsFunction(),
     Symbol('gets'): GetsFunction(),
-    # Symbol('eval'): EvalFunction(),
     # Symbol('cons'): ConsFunction(),
     # Symbol('car'): CarFunction(),
     # Symbol('cdr'): CdrFunction(),
