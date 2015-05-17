@@ -266,7 +266,6 @@ class IntegerDivideFunction(ValueFunction):
             if not isinstance(i.v, (int, long)):
                 raise ValueError("i/: cannot integer divide non-integer %r" % i)
 
-        # We use python 3's "true division", which gives floats for two int arguments.
         return Value(terms[0].v // reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
@@ -283,7 +282,6 @@ class ModuloFunction(ValueFunction):
             if not isinstance(i.v, (int, long)):
                 raise ValueError("%: cannot modulo non-integer %r" % i)
 
-        # We use python 3's "true division", which gives floats for two int arguments.
         return Value(terms[0].v % reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
@@ -295,13 +293,12 @@ class ConcatinateFunction(ValueFunction):
         except NoArgumentsPassedError:
             return Value(1, actual=True)
         except NonValueError, e:
-            raise ValueError("%: cannot modulo non-value %r" % e.t)
+            raise ValueError(".: cannot concatinate non-value %r" % e.t)
         for i in terms:
-            if not isinstance(i.v, (int, long)):
-                raise ValueError("%: cannot modulo non-integer %r" % i)
+            if not isinstance(i.v, (str, unicode)):
+                raise ValueError(".: cannot concatinate non-string %r" % i)
 
-        # We use python 3's "true division", which gives floats for two int arguments.
-        return Value(terms[0].v % reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
+        return Value("".join(terms), actual=True)
 
 
 lib = {
@@ -319,7 +316,7 @@ lib = {
     Symbol('/'): DivideFunction(),
     Symbol('i/'): IntegerDivideFunction(),
     Symbol('%'): ModuloFunction(),
-    # Symbol('.'): ConcatinateFunction(),
+    Symbol('.'): ConcatinateFunction(),
     # Symbol('pos'): PositionFunction(),
     # Symbol('if'): IfFunction(),
     # Symbol('or'): OrFunction(),
