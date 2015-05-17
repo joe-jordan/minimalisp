@@ -124,7 +124,7 @@ class BindFunction(LispFunction):
     @static_pre_execute
     def execute(pair, context):
         if not isinstance(pair.left, Symbol):
-            raise LispRuntimeError('cannot bind value %r to non-symbol %r' % (pair.right.left, pair.left))
+            raise LispRuntimeError('cannot BIND value %r to non-symbol %r' % (pair.right.left, pair.left))
         # we haven't done any of the fancy argument retrieval, so just pair.right.left will have to do
         # for this hard-coded number of arguments.
         context[pair.left] = pair.right.left
@@ -138,12 +138,12 @@ class WithFunction(LispFunction):
         # unwind with's arguments; two pairs.
         argbindings = pair.left
         if not isinstance(argbindings, Pair):
-            raise LispRuntimeError('with: input arguments not satisfied, %r is not an argument list.' % argbindings)
+            raise LispRuntimeError('WITH: input arguments not satisfied, %r is not an argument list.' % argbindings)
 
         pair = pair.right
         functionbody = pair.left
         if not isinstance(functionbody, Pair):
-            raise LispRuntimeError('with: function body argument not satisfied, %r is not a function body list.' % functionbody)
+            raise LispRuntimeError('WITH: function body argument not satisfied, %r is not a function body list.' % functionbody)
 
         if (not isinstance(functionbody.left, Pair) or isinstance(functionbody.right, NIL) or
             not isinstance(functionbody.right.left, Pair)):
@@ -151,7 +151,7 @@ class WithFunction(LispFunction):
             functionbody = Pair(functionbody, NIL())
 
         if not isinstance(pair.right, NIL):
-            raise LispRuntimeError('with does not take a third argument; %r passed.' % pair.right)
+            raise LispRuntimeError('WITH does not take a third argument; %r passed.' % pair.right)
 
         # actually build the LispFunction object:
         return UserLispFunction(argbindings, functionbody)
@@ -202,7 +202,8 @@ class GetsFunction(LispFunction):
             symbols_to_bind.append(pair.left)
 
         for s in symbols_to_bind:
-            assert isinstance(s, Symbol), "GETS: cannot bind to non-symbol %r." % s
+            if not isinstance(s, Symbol):
+                raise LispRuntimeError("GETS: cannot bind to non-symbol %r." % s)
 
             context[s] = parse_token_prompt(raw_input("%s>" % repr(s)))
 
