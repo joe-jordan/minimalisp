@@ -110,7 +110,7 @@ PAIR_LITERAL = PAIR_LITERALS()
 
 NUMERIC = "0123456789"
 BEGIN_HEXANUMERIC = "#"
-HEXANUMERIC = NUMERIC + "ABCDEF"
+HEXANUMERIC = NUMERIC + "aAbBcCdDeEfF"
 STRINGY = '"'
 
 DUBIOUS = "+-"
@@ -137,7 +137,7 @@ def parse_token(t):
         v = Value(t)
     elif char1 in BEGIN_HEXANUMERIC:
         assert all([c in HEXANUMERIC for c in t[1:]]), "token %s contains invalid characters for a hexadecimal literal." % t
-        t = t.replace('#', '0x')
+        t = t.replace('#', '0x').upper()
         v = Value(t)
     elif char1 in PAIR_SEPARATOR and len(t) == 1:
         v = PAIR_LITERAL
