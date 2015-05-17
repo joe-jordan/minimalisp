@@ -49,21 +49,21 @@ def peval(o, context):
     pair = o
 
     # in which case, if we have been asked to run a function!
-    # note that if 
+    # note that if
     if isinstance(pair.left, Symbol):
         try:
             function = context[pair.left]
         except KeyError:
-            raise LispRuntimeError("unbound symbol %s" % pair.left)
+            raise LispRuntimeError("unbound symbol %r" % pair.left)
 
         if not isinstance(function, LispFunction):
-            raise LispRuntimeError("symbol %s is not bound to a function, but %s" % (repr(pair.left), repr(function)))
+            raise LispRuntimeError("symbol %r is not bound to a function, but %r" % (pair.left, function))
     elif isinstance(pair.left, Pair):
         # pair.left is a pair, it is important to eval it and check we get a function, rather than dying here.
         function = peval(pair.left, context)
 
         if not isinstance(function, LispFunction):
-            raise LispRuntimeError("result %s cannot be executed as a function" % repr(function))
+            raise LispRuntimeError("result %r cannot be executed as a function" % function)
 
     return function.execute(pair.right, context)
 
@@ -92,7 +92,7 @@ class UserLispFunction(LispFunction):
             except AttributeError:
                 context[ab.left] = NIL()
             except KeyError:
-                raise ValueError("cannot bind argument %s which is unbound in outer scope." % repr(ap.left))
+                raise ValueError("cannot bind argument %r which is unbound in outer scope." % ap.left)
             ab = ab.right
             try:
                 ap = ap.right
@@ -113,7 +113,7 @@ class BindFunction(LispFunction):
     @staticmethod
     def execute(pair, context):
         if not isinstance(pair.left, Symbol):
-            raise LispRuntimeError('cannot bind value %s to non-symbol %s' % (repr(pair.right.left), repr(pair.left)))
+            raise LispRuntimeError('cannot bind value %r to non-symbol %r' % (pair.right.left, pair.left))
         # we haven't done any of the fancy argument retrieval, so just pair.right.left will have to do
         # for this hard-coded number of arguments.
         context[pair.left] = peval(pair.right.left, context)
@@ -126,15 +126,15 @@ class WithFunction(LispFunction):
         # unwind with's arguments; two quoted pairs.
         argbindings = pair.left
         if not isinstance(argbindings, Pair) or not argbindings.quoted:
-            raise LispRuntimeError('with arg1 not satisfied, %s is not a quoted list.' % repr(argbindings))
+            raise LispRuntimeError('with arg1 not satisfied, %r is not a quoted list.' % argbindings)
 
         pair = pair.right
         functionbody = pair.left
         if not isinstance(functionbody, Pair) or not functionbody.quoted:
-            raise LispRuntimeError('with arg2 not satisfied, %s is not a quoted list.' % repr(functionbody))
+            raise LispRuntimeError('with arg2 not satisfied, %r is not a quoted list.' % functionbody)
 
         if not isinstance(pair.right, NIL):
-            raise LispRuntimeError('with does not take an arg3; %s passed.' % repr(pair.right))
+            raise LispRuntimeError('with does not take an arg3; %r passed.' % pair.right)
 
         # actually build the LispFunction object:
         return UserLispFunction(argbindings, functionbody)
@@ -165,7 +165,7 @@ class GetsFunction(LispFunction):
             symbols_to_bind.append(pair.left)
 
         for s in symbols_to_bind:
-            assert isinstance(s, Symbol), "GETS: cannot bind to non-symbol %s." % repr(s)
+            assert isinstance(s, Symbol), "GETS: cannot bind to non-symbol %r." % s
 
             context[s] = parse_token_prompt(raw_input("%s>" % repr(s)))
 
@@ -207,8 +207,8 @@ class PlusFunction(NumericFunction):
             terms = super(PlusFunction, PlusFunction).execute(pair, context)
         except NoArgumentsPassedError:
             return Value(0, actual=True)
-        except NonNumericValueError, e:
-            raise ValueError("+: cannot sum non-value %s" % repr(e.t))
+        except NonValueError, e:
+            raise ValueError("+: cannot sum non-value %r" % e.t)
 
         return Value(sum([i.v for i in terms]), actual=True)
 
@@ -222,8 +222,8 @@ class MultiplyFunction(NumericFunction):
             terms = super(MultiplyFunction, MultiplyFunction).execute(pair, context)
         except NoArgumentsPassedError:
             return Value(1, actual=True)
-        except NonNumericValueError, e:
-            raise ValueError("*: cannot take product of non-value %s" % repr(e.t))
+        except NonValueError, e:
+            raise ValueError("*: cannot take product of non-value %r" % e.t)
 
         return Value(reduce(mul, [i.v for i in terms], 1), actual=True)
 
