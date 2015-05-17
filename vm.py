@@ -36,7 +36,7 @@ class Context(dict):
 # evaluate - should be a Symbol, Value or a Pair.
 def peval(o, context):
     # if object is literal:
-    if isinstance(o, Value) or ():
+    if isinstance(o, Value):
         return o
 
     # if object is quoted, un-quote it:
