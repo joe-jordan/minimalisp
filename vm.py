@@ -145,8 +145,12 @@ class WithFunction(LispFunction):
     def execute(pair, context):
         # unwind with's arguments; two pairs.
         argbindings = pair.left
-        if not isinstance(argbindings, Pair):
+        if not (isinstance(argbindings, Pair) or isinstance(argbindings, Symbol)):
             raise LispRuntimeError('WITH: input arguments not satisfied, %r is not an argument list.' % argbindings)
+
+        args_as_list = False
+        if isinstance(argbindings, Symbol):
+            args_as_list = True
 
         pair = pair.right
         functionbody = pair.left
@@ -162,7 +166,7 @@ class WithFunction(LispFunction):
             raise LispRuntimeError('WITH does not take a third argument; %r passed.' % pair.right)
 
         # actually build the LispFunction object:
-        return UserLispFunction(argbindings, functionbody)
+        return UserLispFunction(argbindings, functionbody, args_as_list=args_as_list)
 
 
 class ApplyFunction(LispFunction):
@@ -451,8 +455,9 @@ class IfFunction(LispFunction):
 
 
 class UserLispFunction(LispFunction):
-    def __init__(self, argbindings, functionbody):
+    def __init__(self, argbindings, functionbody, args_as_list=False):
         # both are unquoted pairs, which WITH will check for us.
+        self.args_as_list = args_as_list
         self.argbindings = argbindings
         self.functionbody = functionbody
 
@@ -462,16 +467,18 @@ class UserLispFunction(LispFunction):
         context = Context(parent=outer_context)
         ab = self.argbindings
 
-        while type(ab) is not NIL:
-            try:
+        # bind the arguments passed:
+        if self.args_as_list:
+            context[ab] = ap
+        else:
+            while not isinstance(ab, NIL) and not isinstance(ap, NIL):
+                # simply stop binding anything after we reach the end of either list.
                 context[ab.left] = ap.left
-            except AttributeError:
-                context[ab.left] = NIL()
-            ab = ab.right
-            try:
+                ab = ab.right
                 ap = ap.right
-            except AttributeError:
-                pass
+
+            if not isinstance(ap, NIL):
+                raise LispRuntimeError("user function: passed extra arguments %r to a user defined function." % ap)
 
         # eval the function body! We don't use EvalFunction.execute directly
         fb = self.functionbody
