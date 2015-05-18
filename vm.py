@@ -165,6 +165,27 @@ class WithFunction(LispFunction):
         return UserLispFunction(argbindings, functionbody)
 
 
+class ApplyFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute
+    def execute(pair, context):
+        function = pair.left
+
+        if not isinstance(function, LispFunction):
+            raise LispRuntimeError('APPLY: first argument to apply must be a function, recieved %r' % function)
+
+        pair = pair.right
+        arguments = pair.left
+
+        if not isinstance(arguments, Pair):
+            raise LispRuntimeError('APPLY: second argument to apply must be a list of arguments, recieved %r' % arguments)
+
+        if not isinstance(pair.right, NIL):
+            raise LispRuntimeError('APPLY: does not take a third argument; %r passed.' % pair.right)
+
+        function.execute(arguments, context)
+
+
 class EvalFunction(LispFunction):
     @staticmethod
     @static_pre_execute
@@ -465,6 +486,7 @@ class UserLispFunction(LispFunction):
 lib = {
     Symbol('bind'): BindFunction(),
     Symbol('with'): WithFunction(),
+    Symbol('apply'): ApplyFunction(),
     Symbol('eval'): EvalFunction(),
     Symbol('puts'): PutsFunction(),
     Symbol('gets'): GetsFunction(),

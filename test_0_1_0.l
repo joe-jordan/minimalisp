@@ -73,3 +73,11 @@
 (if 'eight '(puts "eight is bound to " eight) '(puts "eight is unbound."))
 
 (if 'seven '(puts "seven is bound to " seven) '(puts "seven is unbound"))
+
+; apply lets you pass arguments to a function if you have them saved in a list.
+
+(bind 'the_arguments '(eight pair five))
+
+(bind 'the_function (with '(a b c) '(puts a b c)))
+
+(apply the_function the_arguments)
