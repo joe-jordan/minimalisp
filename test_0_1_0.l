@@ -67,3 +67,9 @@
 (puts 'pair)
 (puts (car pair))
 (puts (cdr pair))
+
+(if 15 '(bind 'eight 8) '(bind 'seven 7))
+
+(if 'eight '(puts "eight is bound to " eight) '(puts "eight is unbound."))
+
+(if 'seven '(puts "seven is bound to " seven) '(puts "seven is unbound"))

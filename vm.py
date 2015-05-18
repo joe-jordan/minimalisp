@@ -397,7 +397,7 @@ class ConcatinateFunction(ValueFunction):
 # many passed, among other things.
 
 class IfFunction(LispFunction):
-    @static
+    @staticmethod
     @static_pre_execute
     def execute(pair, context):
         test = pair.left
