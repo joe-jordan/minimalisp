@@ -2,9 +2,9 @@
 
 ; position of a value in an S-expression
 (bind 'pos (with '(v l i) '((if 'i NIL '(bind 'i 0)) ; if i was not passed, start it at index 0.
-                            (if (= v (car l)
+                            (if (= v (car l))
                                 i
-                                '(pos v (cdr l) (+ i 1)))))))
+                                '(pos v (cdr l) (+ i 1))))))
 
 ; length of an S expression.
 (bind 'len (with '(l i) '((if 'i NIL '(bind 'i 0)) ; if i is missing, start it at length 0.
