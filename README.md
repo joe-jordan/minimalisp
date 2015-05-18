@@ -33,6 +33,8 @@ The author hypothesises that this should make the runtime faster, since we will 
 
 The idea is to provide all functions that *cannot* be implemented in the language itself easily as standard library, particularly `bind` and `with` (for binding values to symbols and creating contexts, which function as a stack) and `puts`, `gets`, `cons`, `car`, `cdr`, plus the arithmetic and comparisons `+`, `-` and so on, and `if`. There may later be a math library which allows use of `sin` and `ln` and the like, for convenience.
 
+Note that minimalisp standard library functions *can* have side effects - in particular, `bind`, `puts` and `gets` (since `gets` allows binding directly to variables like `bind`.)
+
 ### Current Status
 
 `minimalisp.py` is a working implementation with a subset of the final standard library implemented. The implementation is in `parse.py` for the parser, `values.py` contains the types, and `vm.py` for the function implementations.
@@ -56,4 +58,23 @@ The program test_0_1_0.l will run, with `./minimalisp.py test_0_1_0.l`, and prov
 
 TODO:
 
-Finish the standard library (especially `if`) and mathematical function implementations. The original goal of a Lisp stack that is independent of the Python stack may be resurrected in a future version, or perhaps in the optimised (probably C) version.
+**Finish the standard library** (especially `if`) and mathematical function implementations. The original goal of a Lisp stack that is independent of the Python stack may be resurrected in a future version, or perhaps in the optimised (probably C) version.
+
+**Make runtime errors optional/configurable.**  The default should be with errors on (and nicely shown in the eventual REPL), but the purpose of turning them off is to allow a "permissive" state for random programs (genetic programs) to be run in. This obviously excludes "compile" errors (in the parser).
+
+Example permissive rules:
+
+* Unbound variables are `NIL`
+* Trying to call a non-function is a no-op.
+* Standard library function don't throw errors for wrong number of arguments.
+* Binding to a non-symbol simply returns the value.
+
+...
+
+It should perhaps be possible to switch/force this (permissive) mode programmatically - whether this would be useful depends on whether people would use some other language to generate the random programs, in which case not, or whether they would use minimalisp as the evaluation engine as well, where it would be very useful (strict mode for hand-written programs, permissive for other programs.)
+
+**Define random and jump concepts.** Add to the standard library draft: the idea for one or more random functions, so that random structures can be generated; some mechanism to run loops, other than recursion; and a mechanism for reading and writing text files, and for loading and dumping S-expression structures to them (access to the parser.) 
+
+For examples of random functions, `random` to return a random float between 0. and 1., and `randint` to return an integer below its first argument (default 256). This would allow use of two types of random numbers, and weighted conditional execution (useful for code generation.)
+
+Similarly, for examples of a jump concept, we could provide a `while`, which `eval`s the same code repeatedly until a condition is met. This is subtly different to a recursive function (where the scope of the code is within an inner context), and is much neater than needing to define a recursive function and then call it. Alternatively, a `loop` or `repeat` function could be defined, which took either an exit condition or a number of iterations.
