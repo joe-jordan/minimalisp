@@ -32,6 +32,14 @@ class Context(dict):
 
         return self.parent[key]
 
+    def __contains__(self, key):
+        ret = super(Context, self).__contains__(key)
+
+        if ret is False and self.parent is not None:
+            ret = key in self.parent
+
+        return ret
+
 
 # evaluate - should be a Symbol, Value or a Pair.
 def peval(o, context):
@@ -379,6 +387,48 @@ class ConcatinateFunction(ValueFunction):
         return Value("".join(terms), actual=True)
 
 
+# Logical Functions:
+# By convention we use NIL as false, as well as using 0, the empty string and  unbound Symbols
+# likewise. Thus, any other numeric value is true, as is a string, Pair or bound Symbol.
+# We must choose a value to return from logical comparisons. The value that was compared is not
+# sufficient, since this breaks (== 0 x), and so on. We also do not want to introduce another type
+# (boolean) when we only want True but not False.
+# So, we choose to return Value(1, actual=True). This means we can (+ test test2 test3) and see how
+# many passed, among other things.
+
+class IfFunction(LispFunction):
+    @static
+    @static_pre_execute
+    def execute(pair, context):
+        test = pair.left
+
+        if not isinstance(pair.right, Pair):
+            raise LispRuntimeError("IF: at least two arguments required, only recieved one (%r)" % test)
+
+        pair = pair.right
+        then_do = pair.left
+        else_do = None
+
+        if isinstance(pair.right, Pair):
+
+            pair = pair.right
+            else_do = pair.left
+
+            if not isinstance(pair.right, NIL):
+                raise LispRuntimeError("IF: maximum of three arguments accepted, recieved a fourth (%r)" % pair.right)
+
+        retvalue = NIL()
+
+        if (isinstance(test, Pair) or
+            (isinstance(test, Symbol) and test in context) or
+            (isinstance(test, Value) and test.v)):
+            retvalue = peval(then_do, context)
+        elif else_do:
+            retvalue = peval(else_do, context)
+
+        return retvalue
+
+
 class UserLispFunction(LispFunction):
     def __init__(self, argbindings, functionbody):
         # both are unquoted pairs, which WITH will check for us.
@@ -428,8 +478,7 @@ lib = {
     Symbol('i/'): IntegerDivideFunction(),
     Symbol('%'): ModuloFunction(),
     Symbol('.'): ConcatinateFunction(),
-    # Symbol('pos'): PositionFunction(),
-    # Symbol('if'): IfFunction(),
+    Symbol('if'): IfFunction(),
     # Symbol('or'): OrFunction(),
     # Symbol('and'): AndFunction(),
     # Symbol('>'): GreaterThanFunction(),
