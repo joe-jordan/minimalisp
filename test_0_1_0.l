@@ -68,6 +68,10 @@
 (puts (car pair))
 (puts (cdr pair))
 
+;; False: NIL '() (which are the same),
+;;        0,
+;;        unbound symbols.
+;; True:  everything else.
 (if 15 '(bind 'eight 8) '(bind 'seven 7))
 
 (if 'eight '(puts "eight is bound to " eight) '(puts "eight is unbound."))
@@ -81,3 +85,10 @@
 (bind 'the_function (with '(a b c) '(puts a b c)))
 
 (apply the_function the_arguments)
+
+; and with also lets you define functions which accept variable numbers of arguments in one list:
+(bind 'foo (with 'args '(puts args)))
+
+(foo the_arguments)       ; prints the list of symbols.
+(foo eight pair five)     ; prints the values the symbols point to.
+(apply foo the_arguments) ; ditto.

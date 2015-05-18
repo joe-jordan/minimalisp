@@ -508,8 +508,6 @@ lib = {
     Symbol('%'): ModuloFunction(),
     Symbol('.'): ConcatinateFunction(),
     Symbol('if'): IfFunction(),
-    # Symbol('or'): OrFunction(),
-    # Symbol('and'): AndFunction(),
     # Symbol('>'): GreaterThanFunction(),
     # Symbol('<'): LessThanFunction(),
     # Symbol('='): EqualFunction(),
