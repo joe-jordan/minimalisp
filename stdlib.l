@@ -30,3 +30,13 @@
                            '(if (cdr args)
                                 '(apply or (cdr args))
                                 NIL))))
+
+; This is an aweful definition, and may illustrate the need for an outer-implementation (in python,
+; or C.) In particular, notice what happens if code carefully initialises all its own variables,
+; rather than inheriting them from the outer scope: they will be the same on each iteration, and the
+; loop will never exit. Similarly, no variables from the loop will leave the outer scope apart from
+; the return value.
+(bind 'dowhile (with '(test code) '((bind 'out (eval code))
+                                    (if (eval test)
+                                        out
+                                        '(dowhile test code)))))
