@@ -73,8 +73,10 @@ Example permissive rules:
 
 It should perhaps be possible to switch/force this (permissive) mode programmatically - whether this would be useful depends on whether people would use some other language to generate the random programs, in which case not, or whether they would use minimalisp as the evaluation engine as well, where it would be very useful (strict mode for hand-written programs, permissive for other programs.)
 
-**Define random and jump concepts.** Add to the standard library draft: the idea for one or more random functions, so that random structures can be generated; some mechanism to run loops, other than recursion; and a mechanism for reading and writing text files, and for loading and dumping S-expression structures to them (access to the parser.) 
+**Define random and jump concepts.** Add to the standard library draft: the idea for one or more random functions, so that random structures can be generated; some mechanism to run loops, other than recursion; and a mechanism for reading and writing text files, and for loading and dumping S-expression structures to them (access to the parser.)
 
 For examples of random functions, `random` to return a random float between 0. and 1., and `randint` to return an integer below its first argument (default 256). This would allow use of two types of random numbers, and weighted conditional execution (useful for code generation.)
 
 Similarly, for examples of a jump concept, we could provide a `while`, which `eval`s the same code repeatedly until a condition is met. This is subtly different to a recursive function (where the scope of the code is within an inner context), and is much neater than needing to define a recursive function and then call it. Alternatively, a `loop` or `repeat` function could be defined, which took either an exit condition or a number of iterations.
+
+*refactor:* refactor argument checking in functions written in Python so that we don't have to implement the same linked-list traversal everywhere.
