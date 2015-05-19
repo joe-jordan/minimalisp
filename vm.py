@@ -42,7 +42,7 @@ class Context(dict):
 
 
 # evaluate - should be a Symbol, Value or a Pair.
-def peval(o, context):
+def peval(context, o):
     # if object is literal:
     if isinstance(o, Value):
         return o
@@ -80,7 +80,7 @@ def peval(o, context):
         # pair.left is a pair. it is important to eval it here - this is the one context in which
         # it won't be evaled by pre_execute_impl, which only acts on arguments - and check we get a
         # function, rather than dying here.
-        function = peval(pair.left, context)
+        function = peval(context, pair.left)
 
         if not isinstance(function, LispFunction):
             raise LispRuntimeError("result %r cannot be executed as a function" % function)
@@ -88,10 +88,10 @@ def peval(o, context):
         # pair.left is a Value, or something.
         raise LispRuntimeError("result %r cannot be executed as a function" % pair.left)
 
-    return function.execute(pair.right, context)
+    return function.execute(context, pair.right)
 
 
-def pre_execute_impl(arguments, context):
+def pre_execute_impl(context, arguments):
     """This function is run before ANY user or library function, and evaluates the arguments to
     be passed in. This step cannot be skipped, by anyone."""
     pair = arguments
@@ -99,28 +99,51 @@ def pre_execute_impl(arguments, context):
     evaled_args = []
 
     while not isinstance(pair, NIL):
-        evaled_args.append(peval(pair.left, context))
+        evaled_args.append(peval(context, pair.left))
         pair = pair.right
 
-    output = NIL()
-    for arg in reversed(evaled_args):
-        output = Pair(arg, output)
-
-    return output
+    return evaled_args
 
 
-def static_pre_execute(execute):
-    def actual_execute(arguments, context):
-        evaled_arguments = pre_execute_impl(arguments, context)
-        return execute(evaled_arguments, context)
-    return actual_execute
+def static_pre_execute(method="", minc=0, maxc=float('inf')):
+    def inner_decorator(execute):
+        def actual_execute(context, arguments):
+            evaled_arguments = pre_execute_impl(context, arguments)
+            count = len(evaled_arguments)
+            if count < minc or count > maxc:
+                raise LispRuntimeError("%s: incorrect number of arguments. accepts %r-%r, recieved %r." % (
+                    method, minc, maxc, count))
+            return execute(*([context] + evaled_arguments))
+        return actual_execute
+    return inner_decorator
 
 
-def instance_pre_execute(execute):
-    def actual_execute(self, arguments, context):
-        evaled_arguments = pre_execute_impl(arguments, context)
-        return execute(self, evaled_arguments, context)
-    return actual_execute
+def instance_pre_execute(method=""):
+    def inner_decorator(execute):
+        def actual_execute(self, context, arguments):
+            evaled_arguments = pre_execute_impl(context, arguments)
+            count = len(evaled_arguments)
+            if count < self.minc or count > self.maxc:
+                raise LispRuntimeError("%s: incorrect number of arguments. accepts %r-%r, recieved %r." % (
+                    method, self.minc, self.maxc, count))
+            return execute(self, *([context] + evaled_arguments))
+        return actual_execute
+    return inner_decorator
+
+
+def static_validate_value_type(method="", types=(object,)):
+    def inner_decorator(execute):
+        def actual_validate(context, *terms):
+            for t in terms:
+                if not isinstance(t, Value):
+                    raise ValueError("%s: cannot compute with non-value %r" % (method, t))
+                if not isinstance(t.v, types):
+                    raise ValueError("%s: expected %r, found %r" % (method, t))
+
+            # *args arrives as a tuple, not a list.
+            return execute(*([context] + list(terms)))
+        return actual_validate
+    return inner_decorator
 
 
 class LispFunction(MinimalispType):
@@ -129,111 +152,87 @@ class LispFunction(MinimalispType):
 
 class BindFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        if not isinstance(pair.left, Symbol):
-            raise LispRuntimeError('cannot BIND value %r to non-symbol %r' % (pair.right.left, pair.left))
-        # we haven't done any of the fancy argument retrieval, so just pair.right.left will have to do
-        # for this hard-coded number of arguments.
-        context[pair.left] = pair.right.left
+    @static_pre_execute("BIND", 2, 2)
+    def execute(context, symbol, value):
+        if not isinstance(symbol, Symbol):
+            raise LispRuntimeError('cannot BIND value %r to non-symbol %r' % (value, symbol))
+
+        context[symbol] = value
         return NIL()
 
 
 class WithFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
+    @static_pre_execute("WITH", 2, 2)
+    def execute(context, arg_bindings, function_body):
         # unwind with's arguments; two pairs.
-        argbindings = pair.left
-        if not (isinstance(argbindings, Pair) or isinstance(argbindings, Symbol)):
-            raise LispRuntimeError('WITH: input arguments not satisfied, %r is not an argument list.' % argbindings)
+        if not (isinstance(arg_bindings, Pair) or isinstance(arg_bindings, Symbol)):
+            raise LispRuntimeError('WITH: %r is not an argument list.' % arg_bindings)
 
         args_as_list = False
-        if isinstance(argbindings, Symbol):
+        if isinstance(arg_bindings, Symbol):
             args_as_list = True
 
-        pair = pair.right
-        functionbody = pair.left
-        if not isinstance(functionbody, Pair):
-            raise LispRuntimeError('WITH: function body argument not satisfied, %r is not a function body list.' % functionbody)
+        if not isinstance(function_body, Pair):
+            raise LispRuntimeError('WITH: %r is not a function body.' % function_body)
 
-        if (not isinstance(functionbody.left, Pair) or isinstance(functionbody.right, NIL) or
-            not isinstance(functionbody.right.left, Pair)):
+        if (not isinstance(function_body.left, Pair) or isinstance(function_body.right, NIL) or
+            not isinstance(function_body.right.left, Pair)):
             # This is a single line function implementation, escape it appropriately:
-            functionbody = Pair(functionbody, NIL())
-
-        if not isinstance(pair.right, NIL):
-            raise LispRuntimeError('WITH does not take a third argument; %r passed.' % pair.right)
+            function_body = Pair(function_body, NIL())
 
         # actually build the LispFunction object:
-        return UserLispFunction(argbindings, functionbody, args_as_list=args_as_list)
+        return UserLispFunction(arg_bindings, function_body, args_as_list=args_as_list)
 
 
 class ApplyFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        function = pair.left
-
+    @static_pre_execute("APPLY", 2, 2)
+    def execute(context, function, arguments):
         if not isinstance(function, LispFunction):
             raise LispRuntimeError('APPLY: first argument to apply must be a function, recieved %r' % function)
-
-        pair = pair.right
-        arguments = pair.left
 
         if not isinstance(arguments, Pair):
             raise LispRuntimeError('APPLY: second argument to apply must be a list of arguments, recieved %r' % arguments)
 
-        if not isinstance(pair.right, NIL):
-            raise LispRuntimeError('APPLY: does not take a third argument; %r passed.' % pair.right)
-
-        function.execute(arguments, context)
+        function.execute(context, arguments)
 
 
 class EvalFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        # no fuss, this method does what it says on the tin.
+    @static_pre_execute("EVAL", 1, 1)
+    def execute(context, o):
         retval = NIL()
 
         # check for a list of instructions:
-        if isinstance(pair.left, Pair) and isinstance(pair.right, NIL):
-            pair = pair.left
-
-        while not isinstance(pair, NIL):
-            retval = peval(pair.left, context)
-            pair = pair.right
+        if isinstance(o, Pair) and isinstance(o.left, Pair):
+            pair = o
+            while not isinstance(pair, NIL):
+                retval = peval(context, pair.left)
+                pair = pair.right
+        else:
+            retval = peval(context, o)
 
         return retval
 
 
 class PutsFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        values = [pair.left]
-        while not isinstance(pair.right, NIL):
-            pair = pair.right
-            values.append(pair.left)
+    @static_pre_execute("PUTS")
+    def execute(context, *values):
         print("".join([repr(value) for value in values]))
         return NIL()
 
 
 class GetsFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
+    @static_pre_execute("GETS", 0)
+    def execute(context, *symbols_to_bind):
         # if called with no arguments, returns a single gets.
-        if isinstance(pair.left, NIL):
+        if len(symbols_to_bind) == 0:
             return parse_token_prompt(raw_input(">"))
 
         # with arguments, binds N gets' to them.
-        symbols_to_bind = [pair.left]
-        while not isinstance(pair.right, NIL):
-            pair = pair.right
-            symbols_to_bind.append(pair.left)
-
         for s in symbols_to_bind:
             if not isinstance(s, Symbol):
                 raise LispRuntimeError("GETS: cannot bind to non-symbol %r." % s)
@@ -245,170 +244,90 @@ class GetsFunction(LispFunction):
 
 class ConsFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        left = pair.left
-
-        if isinstance(pair.right, NIL):
-            raise LispRuntimeError("CONS: two arguments are required, only recieved one (%r)" % left)
-
-        pair = pair.right
-        right = pair.left
-
-        if not isinstance(pair.right, NIL):
-            raise LispRuntimeError("CONS: two arguments are required, recieved three: %r, %r, %r" % left, right, pair.right)
-
+    @static_pre_execute("CONS", 2, 2)
+    def execute(context, left, right):
         return Pair(left, right)
 
 
 class CarFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        return pair.left.left
+    @static_pre_execute("CAR", 1, 1)
+    def execute(context, pair):
+        if not isinstance(pair, Pair):
+            raise LispRuntimeError('CAR: %r is not a pair.' % pair)
+
+        return pair.left
 
 
 class CdrFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        return pair.left.right
+    @static_pre_execute("CDR", 1, 1)
+    def execute(context, pair):
+        if not isinstance(pair, Pair):
+            raise LispRuntimeError('CDR: %r is not a pair.' % pair)
 
+        return pair.right
 
-class NoArgumentsPassedError(BaseException):
-    pass
+# numeric functions use the static_validate_value_type decorator:
+numbers = (int, long, float)
+integers = (int, long)
+floats = (float,)
+strings = (str, unicode)
 
-
-class NonValueError(BaseException):
-    def __init__(self, *args, **kwargs):
-        self.t = kwargs.pop('t')
-        super(NonValueError, self).__init__(*args, **kwargs)
-
-
-class ValueFunction(LispFunction):
-    # This level is abstract, all children should apply the decorator.
+class PlusFunction(LispFunction):
     @staticmethod
-    def execute(pair, context):
-        terms = []
-        while not isinstance(pair, NIL):
-            terms.append(pair.left)
-            pair = pair.right
-
-        if not terms:
-            raise NoArgumentsPassedError()
-
-        for t in terms:
-            if not isinstance(t, Value):
-                raise NonValueError(t=t)
-
-        return terms
-
-
-class PlusFunction(ValueFunction):
-    @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        try:
-            terms = super(PlusFunction, PlusFunction).execute(pair, context)
-        except NoArgumentsPassedError:
-            return Value(0, actual=True)
-        except NonValueError, e:
-            raise ValueError("+: cannot sum non-value %r" % e.t)
-
+    @static_pre_execute("+")
+    @static_validate_value_type("+", numbers)
+    def execute(context, *terms):
         return Value(sum([i.v for i in terms]), actual=True)
 
 
-class MinusFunction(ValueFunction):
+class MinusFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        try:
-            terms = super(MinusFunction, MinusFunction).execute(pair, context)
-        except NoArgumentsPassedError:
-            return Value(0, actual=True)
-        except NonValueError, e:
-            raise ValueError("-: cannot subtract non-value %r" % e.t)
-
+    @static_pre_execute("-", 1)
+    @static_validate_value_type("-", numbers)
+    def execute(context, *terms):
         return Value(terms[0].v - sum([i.v for i in terms[1:]]), actual=True)
 
 
-class MultiplyFunction(ValueFunction):
+class MultiplyFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        try:
-            terms = super(MultiplyFunction, MultiplyFunction).execute(pair, context)
-        except NoArgumentsPassedError:
-            return Value(1, actual=True)
-        except NonValueError, e:
-            raise ValueError("*: cannot take product of non-value %r" % e.t)
-
+    @static_pre_execute("*")
+    @static_validate_value_type("*", numbers)
+    def execute(context, *terms):
         return Value(reduce(mul, [i.v for i in terms], 1), actual=True)
 
 
-class DivideFunction(ValueFunction):
+class DivideFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        try:
-            terms = super(DivideFunction, DivideFunction).execute(pair, context)
-        except NoArgumentsPassedError:
-            return Value(1, actual=True)
-        except NonValueError, e:
-            raise ValueError("/: cannot divide non-value %r" % e.t)
-
+    @static_pre_execute("/", 1)
+    @static_validate_value_type("/", numbers)
+    def execute(context, *terms):
         # We use python 3's "true division", which gives floats for two int arguments.
         return Value(terms[0].v / reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
-class IntegerDivideFunction(ValueFunction):
+class IntegerDivideFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        try:
-            terms = super(IntegerDivideFunction, IntegerDivideFunction).execute(pair, context)
-        except NoArgumentsPassedError:
-            return Value(1, actual=True)
-        except NonValueError, e:
-            raise ValueError("i/: cannot divide non-value %r" % e.t)
-        for i in terms:
-            if not isinstance(i.v, (int, long)):
-                raise ValueError("i/: cannot integer divide non-integer %r" % i)
-
+    @static_pre_execute("i/", 1)
+    @static_validate_value_type("i/", integers)
+    def execute(context, *terms):
         return Value(terms[0].v // reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
-class ModuloFunction(ValueFunction):
+class ModuloFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        try:
-            terms = super(ModuloFunction, ModuloFunction).execute(pair, context)
-        except NoArgumentsPassedError:
-            return Value(1, actual=True)
-        except NonValueError, e:
-            raise ValueError("%: cannot modulo non-value %r" % e.t)
-        for i in terms:
-            if not isinstance(i.v, (int, long)):
-                raise ValueError("%: cannot modulo non-integer %r" % i)
-
+    @static_pre_execute("%", 2)
+    @static_validate_value_type("%", integers)
+    def execute(context, *terms):
         return Value(terms[0].v % reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
-class ConcatinateFunction(ValueFunction):
+class ConcatinateFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        try:
-            terms = super(ModuloFunction, ModuloFunction).execute(pair, context)
-        except NoArgumentsPassedError:
-            return Value(1, actual=True)
-        except NonValueError, e:
-            raise ValueError(".: cannot concatinate non-value %r" % e.t)
-        for i in terms:
-            if not isinstance(i.v, (str, unicode)):
-                raise ValueError(".: cannot concatinate non-string %r" % i)
-
+    @static_pre_execute(".")
+    @static_validate_value_type(".", strings)
+    def execute(context, *terms):
         return Value("".join(terms), actual=True)
 
 
@@ -423,33 +342,16 @@ class ConcatinateFunction(ValueFunction):
 
 class IfFunction(LispFunction):
     @staticmethod
-    @static_pre_execute
-    def execute(pair, context):
-        test = pair.left
-
-        if not isinstance(pair.right, Pair):
-            raise LispRuntimeError("IF: at least two arguments required, only recieved one (%r)" % test)
-
-        pair = pair.right
-        then_do = pair.left
-        else_do = None
-
-        if isinstance(pair.right, Pair):
-
-            pair = pair.right
-            else_do = pair.left
-
-            if not isinstance(pair.right, NIL):
-                raise LispRuntimeError("IF: maximum of three arguments accepted, recieved a fourth (%r)" % pair.right)
-
+    @static_pre_execute("IF", 2, 3)
+    def execute(context, test, then_do, else_do=None):
         retvalue = NIL()
 
         if (isinstance(test, Pair) or
             (isinstance(test, Symbol) and test in context) or
             (isinstance(test, Value) and test.v)):
-            retvalue = peval(then_do, context)
+            retvalue = peval(context, then_do)
         elif else_do:
-            retvalue = peval(else_do, context)
+            retvalue = peval(context, else_do)
 
         return retvalue
 
@@ -460,9 +362,24 @@ class UserLispFunction(LispFunction):
         self.args_as_list = args_as_list
         self.argbindings = argbindings
         self.functionbody = functionbody
+        self.minc = 0
 
-    @instance_pre_execute
-    def execute(self, ap, outer_context):
+        if args_as_list:
+            # a list of arguments may be arbitrarily long.
+            self.maxc = float('inf')
+        else:
+            # find out how long argbindings is:
+            args = []
+            sargs = argbindings
+            while not isinstance(sargs, NIL):
+                args.append(sargs.left)
+                sargs = sargs.right
+            self.maxc = len(args)
+
+            self.argbindings = args
+
+    @instance_pre_execute("(user function)")
+    def execute(self, outer_context, *ap):
         # initialise a new context, with arguments bound to names specified (or NIL if none passed):
         context = Context(parent=outer_context)
         ab = self.argbindings
@@ -471,20 +388,16 @@ class UserLispFunction(LispFunction):
         if self.args_as_list:
             context[ab] = ap
         else:
-            while not isinstance(ab, NIL) and not isinstance(ap, NIL):
-                # simply stop binding anything after we reach the end of either list.
-                context[ab.left] = ap.left
-                ab = ab.right
-                ap = ap.right
-
-            if not isinstance(ap, NIL):
-                raise LispRuntimeError("user function: passed extra arguments %r to a user defined function." % ap)
+            for i, arg_passed in enumerate(ap):
+                # instance_pre_execute should have checked we don't have too many args passed.
+                arg_binding = ab[i]
+                context[arg_binding] = arg_passed
 
         # eval the function body! We don't use EvalFunction.execute directly
         fb = self.functionbody
         retval = NIL()
         while type(fb) is not NIL:
-            retval = peval(fb.left, context)
+            retval = peval(context, fb.left)
             fb = fb.right
 
         return retval
@@ -530,4 +443,4 @@ lib = {
 def run(program):
     outer_context = Context(lib)
 
-    UserLispFunction(NIL(), program).execute(NIL(), outer_context)
+    UserLispFunction(NIL(), program).execute(outer_context, NIL())

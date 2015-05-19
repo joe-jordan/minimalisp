@@ -78,5 +78,3 @@ It should perhaps be possible to switch/force this (permissive) mode programmati
 For examples of random functions, `random` to return a random float between 0. and 1., and `randint` to return an integer below its first argument (default 256). This would allow use of two types of random numbers, and weighted conditional execution (useful for code generation.)
 
 Similarly, for examples of a jump concept, we could provide a `while`, which `eval`s the same code repeatedly until a condition is met. This is subtly different to a recursive function (where the scope of the code is within an inner context), and is much neater than needing to define a recursive function and then call it. Alternatively, a `loop` or `repeat` function could be defined, which took either an exit condition or a number of iterations.
-
-*refactor:* refactor argument checking in functions written in Python so that we don't have to implement the same linked-list traversal everywhere.
