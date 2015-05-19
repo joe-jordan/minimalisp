@@ -229,6 +229,8 @@ class PutsFunction(LispFunction):
     @staticmethod
     @static_pre_execute("PUTS")
     def execute(context, *values):
+        if any([not isinstance(v, (Value, Pair, Symbol, LispFunction, NIL)) for v in values]):
+            raise LispRuntimeError("expected lisp objects, got %s" % repr(values))
         print("".join([repr(value) for value in values]))
         return NIL()
 
