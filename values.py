@@ -60,8 +60,8 @@ class Value(MinimalispType):
         return self.v == other.v
 
     def __repr__(self):
-        if isinstance(self.v, str):
-            return crepr(self.v)
+        if isinstance(self.v, (str, unicode)):
+            return self.v
         else:
             return repr(self.v)
 
