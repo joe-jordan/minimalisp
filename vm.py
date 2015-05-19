@@ -14,6 +14,13 @@ class LispRuntimeError(BaseException):
 class UnboundSymbolError(LispRuntimeError):
     pass
 
+def sexpr_from_iterator(it):
+    pair = NIL()
+    for i in reversed(it):
+        pair = Pair(i, pair)
+
+    return pair
+
 
 class Context(dict):
     """stack-like dictionary."""
@@ -381,7 +388,7 @@ class UserLispFunction(LispFunction):
 
         # bind the arguments passed:
         if self.args_as_list:
-            context[ab] = ap
+            context[ab] = sexpr_from_iterator(ap)
         else:
             for i, arg_passed in enumerate(ap):
                 # instance_pre_execute should have checked we don't have too many args passed.
