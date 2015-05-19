@@ -176,11 +176,6 @@ class WithFunction(LispFunction):
         if not isinstance(function_body, Pair):
             raise LispRuntimeError('WITH: %r is not a function body.' % function_body)
 
-        if (not isinstance(function_body.left, Pair) or isinstance(function_body.right, NIL) or
-            not isinstance(function_body.right.left, Pair)):
-            # This is a single line function implementation, escape it appropriately:
-            function_body = Pair(function_body, NIL())
-
         # actually build the LispFunction object:
         return UserLispFunction(arg_bindings, function_body, args_as_list=args_as_list)
 
@@ -201,17 +196,15 @@ class ApplyFunction(LispFunction):
 class EvalFunction(LispFunction):
     @staticmethod
     @static_pre_execute("EVAL", 1, 1)
-    def execute(context, o):
+    def execute(context, pair):
         retval = NIL()
 
-        # check for a list of instructions:
-        if isinstance(o, Pair) and isinstance(o.left, Pair):
-            pair = o
-            while not isinstance(pair, NIL):
-                retval = peval(context, pair.left)
-                pair = pair.right
-        else:
-            retval = peval(context, o)
+        if not isinstance(pair, Pair):
+            raise LispRuntimeError('EVAL: cannot evaluate non-pair %r' % pair)
+
+        while not isinstance(pair, NIL):
+            retval = peval(context, pair.left)
+            pair = pair.right
 
         return retval
 
