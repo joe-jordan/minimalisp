@@ -43,8 +43,8 @@ class Context(dict):
 
 # evaluate - should be a Symbol, Value or a Pair.
 def peval(context, o):
-    # if object is literal:
-    if isinstance(o, Value):
+    # if object is a Value (NIL is a value.)
+    if isinstance(o, Value) or isinstance(o, NIL):
         return o
 
     # if object is quoted, un-quote it:
@@ -67,7 +67,6 @@ def peval(context, o):
     pair = o
 
     # in which case, if we have been asked to run a function!
-    # note that if
     if isinstance(pair.left, Symbol):
         try:
             function = context[pair.left]
@@ -84,6 +83,9 @@ def peval(context, o):
 
         if not isinstance(function, LispFunction):
             raise LispRuntimeError("result %r cannot be executed as a function" % function)
+    elif isinstance(pair.left, LispFunction):
+        # someone has got a function object in the right place for us. Go them!
+        function = pair.left
     else:
         # pair.left is a Value, or something.
         raise LispRuntimeError("result %r cannot be executed as a function" % pair.left)
