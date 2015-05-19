@@ -140,6 +140,13 @@ def instance_pre_execute(method=""):
     return inner_decorator
 
 
+# numeric functions use the static_validate_value_type decorator:
+numbers = (int, long, float)
+integers = (int, long)
+floats = (float,)
+strings = (str, unicode)
+
+
 def static_validate_value_type(method="", types=(object,)):
     def inner_decorator(execute):
         def actual_validate(context, *terms):
@@ -270,11 +277,6 @@ class CdrFunction(LispFunction):
 
         return pair.right
 
-# numeric functions use the static_validate_value_type decorator:
-numbers = (int, long, float)
-integers = (int, long)
-floats = (float,)
-strings = (str, unicode)
 
 class PlusFunction(LispFunction):
     @staticmethod
