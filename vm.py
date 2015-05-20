@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-from values import NIL, MinimalispType, Symbol, Value, Pair
+from values import NIL, LispType, LispValue, Symbol, Value, Pair
 
 from parse import parse_token_prompt
 
@@ -50,8 +50,11 @@ class Context(dict):
 
 # evaluate - should be a Symbol, Value or a Pair.
 def peval(context, o):
-    # if object is a Value (NIL is a value.)
-    if isinstance(o, Value) or isinstance(o, NIL):
+    if not isinstance(o, LispType):
+        raise LispRuntimeError("peval was passed %r, which is not a LispType instance." % o)
+
+    # Value's and NIL
+    if isinstance(o, LispValue):
         return o
 
     # if object is quoted, un-quote it:
@@ -162,7 +165,7 @@ def static_validate_value_type(method="", types=(object,)):
     return inner_decorator
 
 
-class LispFunction(MinimalispType):
+class LispFunction(LispType):
     pass
 
 

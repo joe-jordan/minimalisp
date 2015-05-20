@@ -1,8 +1,4 @@
 
-class NIL(object):
-    def __repr__(self):
-        return 'NIL'
-
 def crepr(s):
     assert type(s) is str, "crepr is for strings, i.e. str() instances."
     prepr = repr(s)
@@ -22,10 +18,11 @@ def lrepr(s):
     return repr(s)
 
 
-class MinimalispType(object):
+class LispType(object):
     pass
 
-class Symbol(MinimalispType):
+
+class Symbol(LispType):
     """only stores its text representation as a python string in upper case
     - can therefore be used as a dict key."""
     def __init__(self, s, quoted=False):
@@ -46,7 +43,16 @@ class Symbol(MinimalispType):
         return hash(self.s)
 
 
-class Value(MinimalispType):
+class LispValue(LispType):
+    pass
+
+
+class NIL(LispValue):
+    def __repr__(self):
+        return 'NIL'
+
+
+class Value(LispValue):
     """stored simply as the relevant python type (string, int or float)."""
     def __init__(self, v, actual=False):
         if actual:
@@ -65,7 +71,8 @@ class Value(MinimalispType):
         else:
             return repr(self.v)
 
-class Pair(MinimalispType):
+
+class Pair(LispType):
     def __init__(self, left=None, right=None, quoted=False):
         self.left = left
         self.right = right
