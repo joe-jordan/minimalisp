@@ -116,7 +116,7 @@ STRINGY = '"'
 DUBIOUS = "+-"
 ALLOWED_IN_NUMERIC = NUMERIC + DUBIOUS + "eE."
 
-from values import Value, Symbol, NIL, Pair
+from values import Value, Symbol, NIL, Pair, LispType
 
 def parse_token(t):
     char1 = t[0]
@@ -179,6 +179,9 @@ def do_pair_literals(s):
 
 
 def sexprs_to_pairs(s):
+    if isinstance(s, LispType):
+        # value literal or pair literal at top level in source, not a problem.
+        return s
     for i, t in enumerate(s):
         if type(t) == sexpr:
             s[i] = sexprs_to_pairs(t)
@@ -202,6 +205,6 @@ def parse_program(inp):
    do_pair_literals(prog)
 
    # finally, build actual Pairs for all the proper S-expressions:
-   prog = sexprs_to_pairs(prog)
+   prog = [sexprs_to_pairs(s) for s in prog]
 
    return prog

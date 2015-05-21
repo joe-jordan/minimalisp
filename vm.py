@@ -182,8 +182,8 @@ class BindFunction(LispFunction):
 
 class WithFunction(LispFunction):
     @staticmethod
-    @static_pre_execute("WITH", 2, 2)
-    def execute(context, arg_bindings, function_body):
+    @static_pre_execute("WITH", 2)
+    def execute(context, arg_bindings, *lines_of_function_body):
         # unwind with's arguments; two pairs.
         if not (isinstance(arg_bindings, Pair) or isinstance(arg_bindings, Symbol)):
             raise LispRuntimeError('WITH: %r is not an argument list.' % arg_bindings)
@@ -192,11 +192,11 @@ class WithFunction(LispFunction):
         if isinstance(arg_bindings, Symbol):
             args_as_list = True
 
-        if not isinstance(function_body, Pair):
-            raise LispRuntimeError('WITH: %r is not a function body.' % function_body)
+        if not lines_of_function_body:
+            raise LispRuntimeError('WITH: cannot define an empty function.')
 
         # actually build the LispFunction object:
-        return UserLispFunction(arg_bindings, function_body, args_as_list=args_as_list)
+        return UserLispFunction(arg_bindings, lines_of_function_body, args_as_list=args_as_list)
 
 
 class ApplyFunction(LispFunction):
@@ -214,16 +214,12 @@ class ApplyFunction(LispFunction):
 
 class EvalFunction(LispFunction):
     @staticmethod
-    @static_pre_execute("EVAL", 1, 1)
-    def execute(context, pair):
+    @static_pre_execute("EVAL", 1)
+    def execute(context, *lines):
         retval = NIL()
 
-        if not isinstance(pair, Pair):
-            raise LispRuntimeError('EVAL: cannot evaluate non-pair %r' % pair)
-
-        while not isinstance(pair, NIL):
-            retval = peval(context, pair.left)
-            pair = pair.right
+        for l in lines:
+            retval = peval(context, l)
 
         return retval
 
@@ -402,12 +398,9 @@ class UserLispFunction(LispFunction):
                 arg_binding = ab[i]
                 context[arg_binding] = arg_passed
 
-        # eval the function body! We don't use EvalFunction.execute directly
-        fb = self.functionbody
         retval = NIL()
-        while type(fb) is not NIL:
-            retval = peval(context, fb.left)
-            fb = fb.right
+        for line in self.functionbody:
+            retval = peval(context, line)
 
         return retval
 
