@@ -54,11 +54,17 @@ The code is currently implemented in Python, the program can parse input and run
 * symbols can be quoted `'five` is "the quoted symbol `FIVE`", which is not a symbol with a quote at the start, `'FIVE`, which is disallowed.
 * however, symbols MAY contain some special characters - `'` is allowed anywhere but the start, and `.` is not excluded. In order to define a pair literal, one must put spaces before and after a `.`.
 
-The program test_0_1_0.l will run, with `./minimalisp.py test_0_1_0.l`, and provides a demonstration / test of most of the standard library functions.
+The program `tests/tutorial.l` will run, with `./minimalisp.py tests/tutorial.l`, and provides a demonstration / test of most of the standard library functions. (note, this is currently bugged until stdlib.l can be included in programs.)
 
 TODO:
 
+*this list is now frozen, and is the target for an alpha release.*
+
 **Finish the standard library** (especially `if`) and mathematical function implementations. The original goal of a Lisp stack that is independent of the Python stack may be resurrected in a future version, or perhaps in the optimised (probably C) version.
+
+ * logical comparisons
+ * find a way of loading stdlib.l into programs e.g. if a flag `-l` is passed. (tutorial is broken until this is finished.)
+ * mathematical functions.
 
 **Make runtime errors optional/configurable.**  The default should be with errors on (and nicely shown in the eventual REPL), but the purpose of turning them off is to allow a "permissive" state for random programs (genetic programs) to be run in. This obviously excludes "compile" errors (in the parser).
 
@@ -78,3 +84,5 @@ It should perhaps be possible to switch/force this (permissive) mode programmati
 For examples of random functions, `random` to return a random float between 0. and 1., and `randint` to return an integer below its first argument (default 256). This would allow use of two types of random numbers, and weighted conditional execution (useful for code generation.)
 
 Similarly, for examples of a jump concept, we could provide a `while`, which `eval`s the same code repeatedly until a condition is met. This is subtly different to a recursive function (where the scope of the code is within an inner context), and is much neater than needing to define a recursive function and then call it. Alternatively, a `loop` or `repeat` function could be defined, which took either an exit condition or a number of iterations.
+
+**Installable.** Add a `setup.py` which can install an executable script and libraries such that this program works from any directory. Future releases may also build into `.deb`, `.rpm` and friends, especially when we try a C implementation.
