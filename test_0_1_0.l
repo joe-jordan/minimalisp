@@ -6,10 +6,10 @@
 (puts five 6 7) ; => 567\n
 
 ; define a new scope, including input data bindings, using with
-((with '(input values)
-       '((puts input)
-         (puts values)
-         (puts five)) ; works, because five is inherited from outer scope
+((with '(input values) ; first argument is argument list
+       '(puts input)   ; subsequent arguments are lines of the function
+       '(puts values)
+       '(puts five) ; works, because five is inherited from outer scope
  ) 5 15)
 
 ; input and values are now out of scope, and cannot be accessed:
@@ -18,10 +18,10 @@
 
 ; define a named function using bind and with
 (bind 'myfunc (with '(arg1 arg2 arg3)
-                   '((bind 'sum (+ arg1 arg2))
-                     (bind 'product (* sum arg3))
-                     (puts product)
-                     product)))
+                    '(eval (bind 'sum (+ arg1 arg2)) ; note, this syntax avoids quoting every line of a function body.
+                           (bind 'product (* sum arg3))
+                           (puts product)
+                           product)))
 
 ; read values from stdin
 (gets 'a)
@@ -31,18 +31,15 @@
 (bind 'retval (myfunc a b c))
 
 ; define an anonymous function, which reuses the outer context, and store it in a variable
-(bind 'anon '((puts myfunc)
-             (puts retval)
-             (* retval 2)))
+(bind 'anon '(eval (puts myfunc)
+                   (puts retval)
+                   (* retval 2)))
 
 ; run the anonymous function and print the return value
 (puts (eval anon))
 
-; EVAL supports only lists of S-expressions, not single ones.
-(puts (eval '((+ 303 5))))
-
-; as does WITH.
-(bind '++ (with '(i) '((+ i 1))))
+; define a function that's actually useful...
+(bind '++ (with '(i) '(+ i 1)))
 
 ; bind a symbol *to a symbol*, rather than the current value of the symbol.
 (bind 'myreference 'five)
@@ -68,6 +65,7 @@
 (puts (car pair))
 (puts (cdr pair))
 
+;; how if works:
 ;; False: NIL '() (which are the same),
 ;;        0,
 ;;        unbound symbols.
