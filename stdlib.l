@@ -1,5 +1,3 @@
-;; TODO implement these two as tail-recursive functions.
-
 ; position of a value in an S-expression
 (bind 'pos (with '(v l i) '((if 'i NIL '(bind 'i 0)) ; if i was not passed, start it at index 0.
                             (if (= v (car l))
@@ -40,3 +38,8 @@
                                     (if (eval test)
                                         out
                                         '(dowhile test code)))))
+
+; `apply` is trivial to implement in minimalisp itself:
+(bind 'apply (with '(f args)
+                   '(eval (bind 'expr (cons 'f args))
+                          (eval expr))))
