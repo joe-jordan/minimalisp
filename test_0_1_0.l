@@ -70,6 +70,8 @@
 ;;        0,
 ;;        unbound symbols.
 ;; True:  everything else.
+
+; note that we defer execution of each branch, to avoid side effects (like executing bind).
 (if 15 '(bind 'eight 8) '(bind 'seven 7))
 
 (if 'eight '(puts "eight is bound to " eight) '(puts "eight is unbound."))
