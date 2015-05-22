@@ -452,6 +452,8 @@ class UserLispFunction(LispFunction):
         for line in self.functionbody:
             retval = peval(context, line)
 
+        self.last_execute_context = context
+
         return retval
 
 
@@ -491,7 +493,16 @@ lib = {
 #     Symbol('log10'): Log10Function()
 # }
 
-def run(program):
+def run(program, use_stdlib=False):
     outer_context = Context(lib)
+
+    if use_stdlib:
+        stdlib_program = use_stdlib
+
+        stdlib = UserLispFunction(NIL(), stdlib_program)
+
+        stdlib.execute(outer_context, NIL())
+
+        outer_context = stdlib.last_execute_context
 
     UserLispFunction(NIL(), program).execute(outer_context, NIL())
