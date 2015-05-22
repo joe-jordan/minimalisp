@@ -32,13 +32,19 @@
                       NIL)))
 
 ; logical or.
-(bind 'or (with 'args '(if (car args)
-                           1
-                           '(if (cdr args)
-                                '(apply or (cdr args))
-                                NIL))))
+(bind 'or (with 'args
+                '(if (car args)
+                     1
+                     '(if (cdr args)
+                          '(apply or (cdr args))
+                          NIL))))
 
-; This is an aweful definition, and may illustrate the need for an outer-implementation (in python,
+; random integers
+(bind 'randint (with '(lim)
+                     '(eval (if 'lim NIL '(bind 'lim 256))
+                            (round (* lim (rand))))))
+
+; This is an awful definition, and may illustrate the need for an outer-implementation (in python,
 ; or C.) In particular, notice what happens if code carefully initialises all its own variables,
 ; rather than inheriting them from the outer scope: they will be the same on each iteration, and the
 ; loop will never exit. Similarly, no variables from the loop will leave the outer scope apart from

@@ -6,6 +6,9 @@ from parse import parse_token_prompt
 
 from operator import mul
 
+import random
+random.seed()
+
 
 class LispRuntimeError(BaseException):
     pass
@@ -316,12 +319,27 @@ class ModuloFunction(LispFunction):
         return Value(terms[0].v % reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
+class RoundFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute("ROUND", 1, 1)
+    @static_validate_value_type("ROUND", floats)
+    def execute(context, f):
+        return Value(int(round(f.v)), actual=True)
+
+
 class ConcatinateFunction(LispFunction):
     @staticmethod
     @static_pre_execute(".")
     @static_validate_value_type(".", strings)
     def execute(context, *terms):
         return Value("".join(terms), actual=True)
+
+
+class RandFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute("RAND", 0, 0)
+    def execute(context):
+        return Value(random.random(), actual=True)
 
 
 # Logical Functions:
@@ -474,7 +492,9 @@ lib = {
     Symbol('/'): DivideFunction(),
     Symbol('i/'): IntegerDivideFunction(),
     Symbol('%'): ModuloFunction(),
+    Symbol('round'): RoundFunction(),
     Symbol('.'): ConcatinateFunction(),
+    Symbol('rand'): RandFunction(),
     Symbol('if'): IfFunction(),
     Symbol('>'): GreaterThanFunction(),
     Symbol('<'): LessThanFunction(),
