@@ -1,3 +1,4 @@
+from __future__ import print_function
 
 def crepr(s):
     assert type(s) is str, "crepr is for strings, i.e. str() instances."
@@ -34,6 +35,9 @@ class Symbol(LispType):
             return False
         return self.s == other.s
 
+    def __ne__(self, other):
+        return not self == other
+
     def __repr__(self):
         if self.quoted:
             return "'" + self.s
@@ -51,6 +55,9 @@ class NIL(LispValue):
     def __eq__(self, other):
         return isinstance(other, NIL)
 
+    def __ne__(self, other):
+        return not self == other
+
     def __repr__(self):
         return 'NIL'
 
@@ -67,6 +74,9 @@ class Value(LispValue):
         if not isinstance(other, Value):
             return False
         return self.v == other.v
+
+    def __ne__(self, other):
+        return not self == other
 
     def __repr__(self):
         if isinstance(self.v, (str, unicode)):
@@ -97,6 +107,9 @@ class Pair(LispType):
             return (self.right == other.right and self.left == other.left)
 
         return (self.left == other.left and self.right == other.right)
+
+    def __ne__(self, other):
+        return not self == other
 
 
     @classmethod
