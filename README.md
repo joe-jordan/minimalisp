@@ -39,6 +39,12 @@ Note that minimalisp standard library functions *can* have side effects - in par
 
 `minimalisp.py` is a working implementation with a subset of the final standard library implemented. The implementation is in `parse.py` for the parser, `values.py` contains the types, and `vm.py` for the function implementations.
 
+You can run the tutorial program, `tests/tutorial.l`, by using the standard library flag:
+
+    ./minimalisp.py -l tests/tutorial.l
+
+Without the `-l` you will get an error for using the `APPLY` symbol unbound.
+
 The code is currently implemented in Python, the program can parse input and run code, but the standard library is incomplete. It can parse:
 
 * integers and floats -> stored as python primitives, so bignum support for free!
@@ -58,12 +64,12 @@ The program `tests/tutorial.l` will run, with `./minimalisp.py tests/tutorial.l`
 
 TODO:
 
+(The original goal of a Lisp stack that is independent of the Python stack may be resurrected in a future version, or perhaps in the optimised (probably C) version.)
+
 *this list is now frozen, and is the target for an alpha release.*
 
-**Finish the standard library** (especially `if`) and mathematical function implementations. The original goal of a Lisp stack that is independent of the Python stack may be resurrected in a future version, or perhaps in the optimised (probably C) version.
+**Finish the standard library**
 
- * logical comparisons
- * find a way of loading stdlib.l into programs e.g. if a flag `-l` is passed. (tutorial is broken until this is finished.)
  * mathematical functions.
 
 **Make runtime errors optional/configurable.**  The default should be with errors on (and nicely shown in the eventual REPL), but the purpose of turning them off is to allow a "permissive" state for random programs (genetic programs) to be run in. This obviously excludes "compile" errors (in the parser).
