@@ -60,7 +60,7 @@ The code is currently implemented in Python, the program can parse input and run
 * symbols can be quoted `'five` is "the quoted symbol `FIVE`", which is not a symbol with a quote at the start, `'FIVE`, which is disallowed.
 * however, symbols MAY contain some special characters - `'` is allowed anywhere but the start, and `.` is not excluded. In order to define a pair literal, one must put spaces before and after a `.`.
 
-The program `tests/tutorial.l` will run, with `./minimalisp.py tests/tutorial.l`, and provides a demonstration / test of most of the standard library functions. (note, this is currently bugged until stdlib.l can be included in programs.)
+The program `tests/tutorial.l` will run, with `./minimalisp.py -l tests/tutorial.l`, and provides a demonstration / test of most of the standard library functions.
 
 TODO:
 
