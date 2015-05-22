@@ -148,6 +148,7 @@ numbers = (int, long, float)
 integers = (int, long)
 floats = (float,)
 strings = (str, unicode)
+values = numbers + strings
 
 
 def static_validate_value_type(method="", types=(object,)):
@@ -380,10 +381,10 @@ class IndenticalFunction(LispFunction):
         return retvalue
 
 
-# this is more of a value function?
 class GreaterThanFunction(LispFunction):
     @staticmethod
     @static_pre_execute(">", 2)
+    @static_validate_value_type(">", values)
     def execute(context, *terms):
         retvalue = Value(1, actual=True)
         lvalue = terms[0]
@@ -399,6 +400,7 @@ class GreaterThanFunction(LispFunction):
 class LessThanFunction(LispFunction):
     @staticmethod
     @static_pre_execute("<", 2)
+    @static_validate_value_type("<", values)
     def execute(context, *terms):
         retvalue = Value(1, actual=True)
         lvalue = terms[0]
