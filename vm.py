@@ -324,7 +324,7 @@ class ConcatinateFunction(LispFunction):
 
 
 # Logical Functions:
-# By convention we use NIL as false, as well as using 0, the empty string and  unbound Symbols
+# By convention we use NIL as false, as well as using 0, the empty string and unbound Symbols
 # likewise. Thus, any other numeric value is true, as is a string, Pair or bound Symbol.
 # We must choose a value to return from logical comparisons. The value that was compared is not
 # sufficient, since this breaks (== 0 x), and so on. We also do not want to introduce another type
@@ -346,6 +346,41 @@ class IfFunction(LispFunction):
             retvalue = peval(context, else_do)
 
         return retvalue
+
+
+class EqualFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute("=", 2)
+    def execute(context, *terms):
+        retvalue = Value(1, actual=True)
+        lvalue = terms[0]
+
+        for rvalue in terms[1:]:
+            if lvalue != rvalue:
+                retvalue = NIL()
+                break
+
+        return retvalue
+
+
+class IndenticalFunction(LispFunction):
+    """This function is not very useful, I think, but can't possibly be implemented in the language
+    without a minimalisp version of python's `id`, which is even worse."""
+    @staticmethod
+    @static_pre_execute("==", 2)
+    def execute(context, *terms):
+        retvalue = Value(1, actual=True)
+        lvalue = terms[0]
+
+        for rvalue in terms[1:]:
+            if id(lvalue) != id(rvalue):
+                retvalue = NIL()
+                break
+
+        return retvalue
+
+
+
 
 
 class UserLispFunction(LispFunction):
@@ -411,8 +446,8 @@ lib = {
     Symbol('if'): IfFunction(),
     # Symbol('>'): GreaterThanFunction(),
     # Symbol('<'): LessThanFunction(),
-    # Symbol('='): EqualFunction(),
-    # Symbol('=='): IndenticalFunction()
+    Symbol('='): EqualFunction(),
+    Symbol('=='): IndenticalFunction()
 }
 
 # math = {

@@ -48,6 +48,9 @@ class LispValue(LispType):
 
 
 class NIL(LispValue):
+    def __eq__(self, other):
+        return isinstnace(other, NIL)
+
     def __repr__(self):
         return 'NIL'
 
@@ -77,6 +80,24 @@ class Pair(LispType):
         self.left = left
         self.right = right
         self.quoted = quoted
+
+    def __eq__(self, other):
+        if not isinstance(other, Pair):
+            return False
+
+        # This is recursive for large pair structures, and should test equality of all
+        # leaf values.
+
+        # We change the order to avoid making depth-first the enemy of speed (one side may be a
+        # single different value, the other may be a large, equal linked list.)
+        left_is_pair = isinstance(self.left, Pair) and isinstance(other.left, Pair)
+        right_is_pair = isinstance(self.right, Pair) and isinstance(other.right, Pair)
+
+        if left_is_pair and not right_is_pair:
+            return (self.right == other.right and self.left == other.left)
+
+        return (self.left == other.left and self.right == other.right)
+
 
     @classmethod
     def pair_list_from_sexpr(cls, s, outermost_quoted = False):
