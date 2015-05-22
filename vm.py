@@ -380,7 +380,35 @@ class IndenticalFunction(LispFunction):
         return retvalue
 
 
+# this is more of a value function?
+class GreaterThanFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute(">", 2)
+    def execute(context, *terms):
+        retvalue = Value(1, actual=True)
+        lvalue = terms[0]
 
+        for rvalue in terms[1:]:
+            if lvalue <= rvalue:
+                retvalue = NIL()
+                break
+
+        return retvalue
+
+
+class LessThanFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute("<", 2)
+    def execute(context, *terms):
+        retvalue = Value(1, actual=True)
+        lvalue = terms[0]
+
+        for rvalue in terms[1:]:
+            if lvalue >= rvalue:
+                retvalue = NIL()
+                break
+
+        return retvalue
 
 
 class UserLispFunction(LispFunction):
@@ -444,8 +472,8 @@ lib = {
     Symbol('%'): ModuloFunction(),
     Symbol('.'): ConcatinateFunction(),
     Symbol('if'): IfFunction(),
-    # Symbol('>'): GreaterThanFunction(),
-    # Symbol('<'): LessThanFunction(),
+    Symbol('>'): GreaterThanFunction(),
+    Symbol('<'): LessThanFunction(),
     Symbol('='): EqualFunction(),
     Symbol('=='): IndenticalFunction()
 }
