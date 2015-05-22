@@ -17,12 +17,16 @@ if __name__ == "__main__":
     import sys
     parse_only = '-p' in sys.argv
     use_stdlib = '-l' in sys.argv
+    with_math = '-m' in sys.argv
 
     possible_fn = 1
     if parse_only:
         possible_fn += 1
 
     if use_stdlib:
+        possible_fn += 1
+
+    if with_math:
         possible_fn += 1
 
     source = None
@@ -50,6 +54,6 @@ if __name__ == "__main__":
         exit(0)
 
     try:
-        run(program, use_stdlib=use_stdlib)
+        run(program, use_stdlib=use_stdlib, with_math=with_math)
     except LispRuntimeError as e:
         print("  \033[1;31mERROR:\033[0m  %s" % e.message)

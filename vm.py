@@ -502,20 +502,7 @@ lib = {
     Symbol('=='): IndenticalFunction()
 }
 
-# math = {
-#     Symbol('sin'): SinFunction(),
-#     Symbol('cos'): CosFunction(),
-#     Symbol('tan'): TanFunction(),
-#     Symbol('asin'): AsinFunction(),
-#     Symbol('acos'): AcosFunction(),
-#     Symbol('atan'): AtanFunction(),
-#     Symbol('atan2'): Atan2Function(),
-#     Symbol('ln'): LnFunction(),
-#     Symbol('log2'): Log2Function(),
-#     Symbol('log10'): Log10Function()
-# }
-
-def run(program, use_stdlib=False):
+def run(program, use_stdlib=False, with_math=False):
     outer_context = Context(lib)
 
     if use_stdlib:
@@ -526,5 +513,9 @@ def run(program, use_stdlib=False):
         stdlib.execute(outer_context, NIL())
 
         outer_context = stdlib.last_execute_context
+
+    if with_math:
+        import maths
+        outer_context.update(maths.maths_functions)
 
     UserLispFunction(NIL(), program).execute(outer_context, NIL())

@@ -37,40 +37,56 @@ Note that minimalisp standard library functions *can* have side effects - in par
 
 ### Current Status
 
-`minimalisp.py` is a working implementation with a subset of the final standard library implemented. The implementation is in `parse.py` for the parser, `values.py` contains the types, and `vm.py` for the function implementations.
+`minimalisp.py` is a working implementation with a standard library implemented. The implementation is in `parse.py` for the parser, `values.py` contains the types, and `vm.py` for the function implementations.
 
-You can run the tutorial program, `tests/tutorial.l`, by using the standard library flag:
-
-    ./minimalisp.py -l tests/tutorial.l
-
-Without the `-l` you will get an error for using the `APPLY` symbol unbound.
-
-The code is currently implemented in Python, the program can parse input and run code, but the standard library is incomplete. It can parse:
-
-* integers and floats -> stored as python primitives, so bignum support for free!
-* all base-10 number formats accepted (i.e. `1` == `+1`, `-1` == `(- 0 1)`, `-13.762e+037` == exactly what it says on the tin.)
-* hex numbers starting with `#` (converted to integers, hexness not remembered.)
-* comments are correctly escaped
-* strings, including most special characters, including `;`, escaped correctly (printing this only works assuming python returns us a sensible repr)
-* S-expressions parsed into linked lists correctly
-* quoted S-expressions store this status correctly
-* literal (dotted) pairs are parsed and stored correctly
-* nil or NIL correctly interpreted as a NIL object.
-* symbols are correctly detected in tricky cases, e.g. `+five` is a symbol, where `+5` is an integer.
-* symbols can be quoted `'five` is "the quoted symbol `FIVE`", which is not a symbol with a quote at the start, `'FIVE`, which is disallowed.
-* however, symbols MAY contain some special characters - `'` is allowed anywhere but the start, and `.` is not excluded. In order to define a pair literal, one must put spaces before and after a `.`.
+`minimalisp.py` accepts three arguments: `-p` for "parse-only" mode, `-l` for the extended standard library (the parts that can be implemented in the language itself,) and `-m` for the mathematical functions.
 
 The program `tests/tutorial.l` will run, with `./minimalisp.py -l tests/tutorial.l`, and provides a demonstration / test of most of the standard library functions.
 
-TODO:
+## Function Reference:
+
+Built-in:
+
+  * `WITH` returns a function object which can be called.
+  * `BIND` binds a symbol (name) to a value in the current scope.
+  * `EVAL` executes the expression on the right.
+  * `CONS`, `CAR` and `CDR` behave as expected for a lisp; for Pair construction and value extraction.
+  * `PUTS` and `GETS` allow reading and writing values from stdin and stdout.
+  * `+`, `-`, `*`, `/` all do what they say on the tin. Additionally, `i/` and `%` are provided for integer division and remainder (modulo) respectively.
+  * `ROUND` coerces floating point values to integers.
+  * `RAND` returns a pseudo-random number between 0.0 and 1.0.
+  * `IF` will test its first argument, and if it is not `NIL`, an unbound symbol or 0 it will `EVAL` its second argument, otherwise its third (if provided.)
+  * `=` tests for equivalence and `==` for exact (object) equality. They return 1 or `NIL`.
+  * `>` and `<` test for greater than or less than, and can compare numbers or strings (if compared, numbers are always lower than strings, regardless of the contents.)
+
+`stdlib.l` (`-l`)
+
+(ever expanding.)
+
+  * `APPLY` invokes its first argument (a function) with its second as a list of arguments.
+  * `POS` finds an object (`=`) in a list and returns its index.
+  * `LEN` returns the length of a list.
+  * `NOT` inverts logical expressions.
+  * `AND` tests each argument like `IF`, and returns 1 if all are 1, otherwise `NIL`.
+  * `OR` ditto, but 1 if any are 1, otherwise `NIL`.
+  * `RANDINT` generates a random integer between 0 and its argument, default 256.
+
+(there is also a broken `DOWHILE` there, pending work on a looping syntax of some kind.)
+
+`math.py` (`-m`)
+
+  * `SIN`, `COS`, `TAN` trigonomic functions (arguments in radians.)
+  * `ASIN`, `ACOS`, `ATAN`, `ATAN2` inverse trigonomic functions (returning radians.)
+  * `LOG` logarithm, second argument is the base, default 10.
+  * `PI` the value of *pi* as a double precision float.
+  * `EXP` raise *e* to the power of the first argument.
+
+
+## TODO:
 
 (The original goal of a Lisp stack that is independent of the Python stack may be resurrected in a future version, or perhaps in the optimised (probably C) version.)
 
 *this list is now frozen, and is the target for an alpha release.*
-
-**Finish the standard library**
-
- * mathematical functions.
 
 **Make runtime errors optional/configurable.**  The default should be with errors on (and nicely shown in the eventual REPL), but the purpose of turning them off is to allow a "permissive" state for random programs (genetic programs) to be run in. This obviously excludes "compile" errors (in the parser).
 
