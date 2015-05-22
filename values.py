@@ -49,7 +49,7 @@ class LispValue(LispType):
 
 class NIL(LispValue):
     def __eq__(self, other):
-        return isinstnace(other, NIL)
+        return isinstance(other, NIL)
 
     def __repr__(self):
         return 'NIL'
