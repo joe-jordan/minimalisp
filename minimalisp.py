@@ -2,7 +2,7 @@
 # If you get an import error here, please use python >= 2.6 .
 from __future__ import print_function
 
-import os.path
+import os.path, fileinput
 
 from parse import parse_program
 from values import NIL
@@ -36,7 +36,7 @@ if __name__ == "__main__":
         pass
 
     if source is None:
-        source = '\n'.join([line for line in fileinput.input()])
+        source = '\n'.join([line for line in fileinput.input('-')])
 
     program = parse_program(source)
 
