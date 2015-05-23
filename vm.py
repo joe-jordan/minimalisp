@@ -431,6 +431,31 @@ class LessThanFunction(LispFunction):
         return retvalue
 
 
+class WhileFunction(LispFunction):
+    """works like EVAL, except it repeats the function body again and again until test fails.
+    Returns the number of iterations."""
+    @staticmethod
+    @static_pre_execute("WHILE", 2)
+    def execute(context, test, *body):
+        retvalue = Value(0, actual=True)
+
+        # unlike IF, the test must be quoted so it can be re-evaluated multiple times.
+
+        result = peval(context, test)
+
+        while (isinstance(result, Pair) or
+            (isinstance(result, Symbol) and result in context) or
+            (isinstance(result, Value) and result.v)):
+            retvalue.v += 1
+
+            for line in body:
+                peval(context, line)
+
+            result = peval(context, test)
+
+        return retvalue
+
+
 class UserLispFunction(LispFunction):
     def __init__(self, argbindings, functionbody, args_as_list=False):
         # both are unquoted pairs, which WITH will check for us.
@@ -499,7 +524,8 @@ lib = {
     Symbol('>'): GreaterThanFunction(),
     Symbol('<'): LessThanFunction(),
     Symbol('='): EqualFunction(),
-    Symbol('=='): IndenticalFunction()
+    Symbol('=='): IndenticalFunction(),
+    Symbol('while'): WhileFunction()
 }
 
 def run(program, use_stdlib=False, with_math=False):
