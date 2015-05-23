@@ -1,5 +1,7 @@
 Notes on the standard library
 
+*this note is rather old. function names have changed somewhat, in particular `define` became `with` and `set` became `bind`. What are referred to as "blocks" have been named "contexts" inside the implementation. Some ideas in this document, particularly: `unset` (`unbind`); `split` as the inverse to `cat` (`.`); and `read` and `write` (specifically for S expressions) are good ideas that are yet to be incorporated into the implementation.*
+
 The functions I propose implementing will be only those that are impossible to implement in the language itself.
 
 Thus, the following symbols start in every program assigned to particular function implementations (they, as all symbols, can be renamed and overwritten at runtime - the author emphasises that there are *no magic functions* and *no macros* in minimalisp.):
