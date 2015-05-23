@@ -408,7 +408,7 @@ class GreaterThanFunction(LispFunction):
         lvalue = terms[0]
 
         for rvalue in terms[1:]:
-            if lvalue <= rvalue:
+            if lvalue.v <= rvalue.v:
                 retvalue = NIL()
                 break
 
@@ -424,7 +424,7 @@ class LessThanFunction(LispFunction):
         lvalue = terms[0]
 
         for rvalue in terms[1:]:
-            if lvalue >= rvalue:
+            if lvalue.v >= rvalue.v:
                 retvalue = NIL()
                 break
 
