@@ -43,15 +43,3 @@
 (bind 'randint (with '(lim)
                      '(eval (if 'lim NIL '(bind 'lim 256))
                             (round (* lim (rand))))))
-
-; This is an awful definition, and may illustrate the need for an outer-implementation (in python,
-; or C.) In particular, notice what happens if code carefully initialises all its own variables,
-; rather than inheriting them from the outer scope: they will be the same on each iteration, and the
-; loop will never exit. Similarly, no variables from the loop will leave the outer scope apart from
-; the return value. Finally, if the poor consumer tries to use the symbol TEST, CODE, or OUT they
-; will encounter unexpected bugs.
-(bind 'dowhile (with '(test code)
-                     '(bind 'out (eval code))
-                     '(if (eval test)
-                          out
-                          '(dowhile test code))))
