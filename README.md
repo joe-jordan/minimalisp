@@ -43,43 +43,9 @@ Note that minimalisp standard library functions *can* have side effects - in par
 
 The program `tests/tutorial.l` will run, with `./minimalisp.py -l tests/tutorial.l`, and provides a demonstration / test of most of the standard library functions.
 
-## Function Reference:
+## Documentation:
 
-Built-in:
-
-  * `WITH` returns a function object which can be called.
-  * `BIND` binds a symbol (name) to a value in the current scope.
-  * `EVAL` executes the expression on the right.
-  * `CONS`, `CAR` and `CDR` behave as expected for a lisp; for Pair construction and value extraction.
-  * `PUTS` and `GETS` allow reading and writing values from stdin and stdout.
-  * `+`, `-`, `*`, `/` all do what they say on the tin. Additionally, `i/` and `%` are provided for integer division and remainder (modulo) respectively.
-  * `ROUND` coerces floating point values to integers.
-  * `RAND` returns a pseudo-random number between 0.0 and 1.0.
-  * `.` for concatenation and `SPLIT` for tokenisation of strings, which are a fundamental type.
-  * `IF` will test its first argument, and if it is not `NIL`, an unbound symbol or 0 it will `EVAL` its second argument, otherwise its third (if provided.)
-  * `=` tests for equivalence and `==` for exact (object) equality. They return 1 or `NIL`.
-  * `>` and `<` test for greater than or less than, and can compare numbers or strings (if compared, numbers are always lower than strings, regardless of the contents.)
-  * `DOWHILE` for to provide a looping construct that is stack-safe, while tail-recursion is not optimised for and we still lean on the Python stack.
-
-`stdlib.l` (`-l`)
-
-(ever expanding.)
-
-  * `APPLY` invokes its first argument (a function) with its second as a list of arguments.
-  * `POS` finds an object (`=`) in a list and returns its index.
-  * `LEN` returns the length of a list.
-  * `NOT` inverts logical expressions.
-  * `AND` tests each argument like `IF`, and returns 1 if all are 1, otherwise `NIL`.
-  * `OR` ditto, but 1 if any are 1, otherwise `NIL`.
-  * `RANDINT` generates a random integer between 0 and its argument, default
-
-`math.py` (`-m`)
-
-  * `SIN`, `COS`, `TAN` trigonomic functions (arguments in radians.)
-  * `ASIN`, `ACOS`, `ATAN`, `ATAN2` inverse trigonomic functions (returning radians.)
-  * `LOG` logarithm, second argument is the base, default 10.
-  * `PI` the value of *pi* as a double precision float.
-  * `EXP` raise *e* to the power of the first argument.
+I have started using the [github wiki](https://github.com/joe-jordan/minimalisp/wiki) for the function reference.
 
 
 ## TODO:
