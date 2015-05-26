@@ -55,9 +55,11 @@ Built-in:
   * `+`, `-`, `*`, `/` all do what they say on the tin. Additionally, `i/` and `%` are provided for integer division and remainder (modulo) respectively.
   * `ROUND` coerces floating point values to integers.
   * `RAND` returns a pseudo-random number between 0.0 and 1.0.
+  * `.` for concatenation and `SPLIT` for tokenisation of strings, which are a fundamental type.
   * `IF` will test its first argument, and if it is not `NIL`, an unbound symbol or 0 it will `EVAL` its second argument, otherwise its third (if provided.)
   * `=` tests for equivalence and `==` for exact (object) equality. They return 1 or `NIL`.
   * `>` and `<` test for greater than or less than, and can compare numbers or strings (if compared, numbers are always lower than strings, regardless of the contents.)
+  * `DOWHILE` for to provide a looping construct that is stack-safe, while tail-recursion is not optimised for and we still lean on the Python stack.
 
 `stdlib.l` (`-l`)
 
@@ -69,9 +71,7 @@ Built-in:
   * `NOT` inverts logical expressions.
   * `AND` tests each argument like `IF`, and returns 1 if all are 1, otherwise `NIL`.
   * `OR` ditto, but 1 if any are 1, otherwise `NIL`.
-  * `RANDINT` generates a random integer between 0 and its argument, default 256.
-
-(there is also a broken `DOWHILE` there, pending work on a looping syntax of some kind.)
+  * `RANDINT` generates a random integer between 0 and its argument, default
 
 `math.py` (`-m`)
 
@@ -86,7 +86,7 @@ Built-in:
 
 (The original goal of a Lisp stack that is independent of the Python stack may be resurrected in a future version, or perhaps in the optimised (probably C) version.)
 
-*this list is now frozen, and is the target for an alpha release.*
+*this list is now frozen, and is the target for an alpha release. - only permissive mode and installation to go!*
 
 **Make runtime errors optional/configurable.**  The default should be with errors on (and nicely shown in the eventual REPL), but the purpose of turning them off is to allow a "permissive" state for random programs (genetic programs) to be run in. This obviously excludes "compile" errors (in the parser).
 
@@ -100,11 +100,5 @@ Example permissive rules:
 ...
 
 It should perhaps be possible to switch/force this (permissive) mode programmatically - whether this would be useful depends on whether people would use some other language to generate the random programs, in which case not, or whether they would use minimalisp as the evaluation engine as well, where it would be very useful (strict mode for hand-written programs, permissive for other programs.)
-
-**Define random and jump concepts.** Add to the standard library draft: the idea for one or more random functions, so that random structures can be generated; some mechanism to run loops, other than recursion; and a mechanism for reading and writing text files, and for loading and dumping S-expression structures to them (access to the parser.)
-
-For examples of random functions, `random` to return a random float between 0. and 1., and `randint` to return an integer below its first argument (default 256). This would allow use of two types of random numbers, and weighted conditional execution (useful for code generation.)
-
-Similarly, for examples of a jump concept, we could provide a `while`, which `eval`s the same code repeatedly until a condition is met. This is subtly different to a recursive function (where the scope of the code is within an inner context), and is much neater than needing to define a recursive function and then call it. Alternatively, a `loop` or `repeat` function could be defined, which took either an exit condition or a number of iterations.
 
 **Installable.** Add a `setup.py` which can install an executable script and libraries such that this program works from any directory. Future releases may also build into `.deb`, `.rpm` and friends, especially when we try a C implementation.
