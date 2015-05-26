@@ -14,3 +14,20 @@ In the meantime, I intend to deliver an extremely simple iterating mechanism whi
  * There will be no `BREAK` function, as this is too side-effect-ridden even for me. Containing code within `IF` functions clauses will have to be sufficient.
 
 This method will be a simple way to deliver stack-friendly iteration, and should be simple enough to implement and keep even in future releases.
+
+# Ugly
+
+Kept for posterity is a lisp-based `DOWHILE` I implemented while thinking about this problem. Please don't think this is good code (it may not even work.)
+
+
+    ; This is an awful definition, and may illustrate the need for an outer-implementation (in python,
+    ; or C.) In particular, notice what happens if code carefully initialises all its own variables,
+    ; rather than inheriting them from the outer scope: they will be the same on each iteration, and the
+    ; loop will never exit. Similarly, no variables from the loop will leave the outer scope apart from
+    ; the return value. Finally, if the poor consumer tries to use the symbol TEST, CODE, or OUT they
+    ; will encounter unexpected bugs.
+    (bind 'dowhile (with '(test code)
+                         '(bind 'out (eval code))
+                         '(if (eval test)
+                              out
+                              '(dowhile test code))))
