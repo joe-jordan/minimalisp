@@ -334,6 +334,22 @@ class ConcatinateFunction(LispFunction):
     def execute(context, *terms):
         return Value("".join(terms), actual=True)
 
+class SplitFunction(LispFunction):
+    @staticmethod
+    @static_pre_execute('SPLIT', 1, 2)
+    @static_validate_value_type('SPLIT', strings)
+    def execute(context, input, substring=None):
+        retvalue = NIL()
+
+        args = []
+        if substring:
+            args.append(substring)
+
+        for tok in reversed(input.v.split(*args)):
+            retvalue = Pair(Value(tok, actual=True), retvalue)
+
+        return retvalue
+
 
 class RandFunction(LispFunction):
     @staticmethod
@@ -519,6 +535,7 @@ lib = {
     Symbol('%'): ModuloFunction(),
     Symbol('round'): RoundFunction(),
     Symbol('.'): ConcatinateFunction(),
+    Symbol('split'): SplitFunction(),
     Symbol('rand'): RandFunction(),
     Symbol('if'): IfFunction(),
     Symbol('>'): GreaterThanFunction(),
