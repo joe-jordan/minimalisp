@@ -6,6 +6,7 @@ import os.path, fileinput
 
 from parse import parse_program
 from values import NIL
+import vm
 from vm import run, LispRuntimeError
 
 STDLIB_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "stdlib.l")
@@ -15,12 +16,13 @@ if __name__ == "__main__":
     pycatch.enable(ipython=True)
 
     import sys
-    parse_only = '-p' in sys.argv
+    permissive_mode = '-p' in sys.argv
     use_stdlib = '-l' in sys.argv
     with_math = '-m' in sys.argv
 
     possible_fn = 1
-    if parse_only:
+    if permissive_mode:
+        vm.PERMISSIVE = True
         possible_fn += 1
 
     if use_stdlib:
@@ -46,12 +48,6 @@ if __name__ == "__main__":
 
     if use_stdlib:
         use_stdlib = parse_program(open(STDLIB_PATH, 'r').read())
-
-    if parse_only:
-        print("parsed %s successfully. resulting program:" % fn if fn else "stdin")
-        for line in program:
-            print(repr(line))
-        exit(0)
 
     try:
         run(program, use_stdlib=use_stdlib, with_math=with_math)

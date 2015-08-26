@@ -9,6 +9,9 @@ from operator import mul
 import random
 random.seed()
 
+# overwritten in the executible
+PERMISSIVE = False
+
 
 class LispRuntimeError(BaseException):
     pass
