@@ -41,6 +41,8 @@ class Context(dict):
             return super(Context, self).__getitem__(key)
         except KeyError:
             if self.parent is None:
+                if PERMISSIVE:
+                    return NIL()
                 raise UnboundSymbolError("symbol %r was used unbound." % key)
 
         return self.parent[key]
@@ -128,7 +130,7 @@ def static_pre_execute(method="", minc=0, maxc=float('inf')):
         def actual_execute(context, arguments):
             evaled_arguments = pre_execute_impl(context, arguments)
             count = len(evaled_arguments)
-            if count < minc or count > maxc:
+            if not PERMISSIVE and (count < minc or count > maxc):
                 raise LispRuntimeError("%s: incorrect number of arguments. accepts %r-%r, recieved %r." % (
                     method, minc, maxc, count))
             return execute(*([context] + evaled_arguments))
@@ -141,7 +143,7 @@ def instance_pre_execute(method=""):
         def actual_execute(self, context, arguments):
             evaled_arguments = pre_execute_impl(context, arguments)
             count = len(evaled_arguments)
-            if count < self.minc or count > self.maxc:
+            if not PERMISSIVE and (count < self.minc or count > self.maxc):
                 raise LispRuntimeError("%s: incorrect number of arguments. accepts %r-%r, recieved %r." % (
                     method, self.minc, self.maxc, count))
             return execute(self, *([context] + evaled_arguments))
@@ -179,28 +181,40 @@ class LispFunction(LispType):
 class BindFunction(LispFunction):
     @staticmethod
     @static_pre_execute("BIND", 2, 2)
-    def execute(context, symbol, value):
+    def execute(context, symbol=None, value=NIL(), *args):
         if not isinstance(symbol, Symbol):
-            raise LispRuntimeError('cannot BIND value %r to non-symbol %r' % (value, symbol))
+            if not PERMISSIVE:
+                raise LispRuntimeError('cannot BIND value %r to non-symbol %r' % (value, symbol))
+        else:
+            context[symbol] = value
 
-        context[symbol] = value
         return NIL()
+
+
+class NoOpFunction(LispFunction):
+    @staticmethod
+    def execute(*args):
+        pass
 
 
 class WithFunction(LispFunction):
     @staticmethod
     @static_pre_execute("WITH", 2)
-    def execute(context, arg_bindings, *lines_of_function_body):
+    def execute(context, arg_bindings=NIL(), *lines_of_function_body):
         # unwind with's arguments; two pairs.
-        if not (isinstance(arg_bindings, Pair) or isinstance(arg_bindings, Symbol)):
-            raise LispRuntimeError('WITH: %r is not an argument list.' % arg_bindings)
-
         args_as_list = False
-        if isinstance(arg_bindings, Symbol):
-            args_as_list = True
+        if not (isinstance(arg_bindings, Pair) or isinstance(arg_bindings, Symbol)):
+            if not PERMISSIVE:
+                raise LispRuntimeError('WITH: %r is not an argument list.' % arg_bindings)
+        else:
+            if isinstance(arg_bindings, Symbol):
+                args_as_list = True
 
         if not lines_of_function_body:
-            raise LispRuntimeError('WITH: cannot define an empty function.')
+            if PERMISSIVE:
+                return NoOpFunction()
+            else:
+                raise LispRuntimeError('WITH: cannot define an empty function.')
 
         # actually build the LispFunction object:
         return UserLispFunction(arg_bindings, lines_of_function_body, args_as_list=args_as_list)
@@ -222,7 +236,7 @@ class PutsFunction(LispFunction):
     @staticmethod
     @static_pre_execute("PUTS")
     def execute(context, *values):
-        if any([not isinstance(v, (Value, Pair, Symbol, LispFunction, NIL)) for v in values]):
+        if not PERMISSIVE and any([not isinstance(v, (Value, Pair, Symbol, LispFunction, NIL)) for v in values]):
             raise LispRuntimeError("expected lisp objects, got %s" % repr(values))
         print("".join([repr(value) for value in values]))
         return NIL()
@@ -239,9 +253,10 @@ class GetsFunction(LispFunction):
         # with arguments, binds N gets' to them.
         for s in symbols_to_bind:
             if not isinstance(s, Symbol):
-                raise LispRuntimeError("GETS: cannot bind to non-symbol %r." % s)
-
-            context[s] = parse_token_prompt(raw_input("%s>" % repr(s)))
+                if not PERMISSIVE:
+                    raise LispRuntimeError("GETS: cannot bind to non-symbol %r." % s)
+            else:
+                context[s] = parse_token_prompt(raw_input("%s>" % repr(s)))
 
         return NIL()
 
@@ -249,15 +264,17 @@ class GetsFunction(LispFunction):
 class ConsFunction(LispFunction):
     @staticmethod
     @static_pre_execute("CONS", 2, 2)
-    def execute(context, left, right):
+    def execute(context, left=NIL(), right=NIL(), *args):
         return Pair(left, right)
 
 
 class CarFunction(LispFunction):
     @staticmethod
     @static_pre_execute("CAR", 1, 1)
-    def execute(context, pair):
+    def execute(context, pair=NIL(), *args):
         if not isinstance(pair, Pair):
+            if PERMISSIVE:
+                return pair
             raise LispRuntimeError('CAR: %r is not a pair.' % pair)
 
         return pair.left
@@ -266,8 +283,10 @@ class CarFunction(LispFunction):
 class CdrFunction(LispFunction):
     @staticmethod
     @static_pre_execute("CDR", 1, 1)
-    def execute(context, pair):
+    def execute(context, pair=NIL(), *args):
         if not isinstance(pair, Pair):
+            if PERMISSIVE:
+                return pair
             raise LispRuntimeError('CDR: %r is not a pair.' % pair)
 
         return pair.right
