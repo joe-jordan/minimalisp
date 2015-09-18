@@ -54,17 +54,4 @@ I have started using the [github wiki](https://github.com/joe-jordan/minimalisp/
 
 *this list is now frozen, and is the target for an alpha release. - only permissive mode and installation to go!*
 
-**Make runtime errors optional/configurable.**  The default should be with errors on (and nicely shown in the eventual REPL), but the purpose of turning them off is to allow a "permissive" state for random programs (genetic programs) to be run in. This obviously excludes "compile" errors (in the parser).
-
-Example permissive rules:
-
-* Unbound variables are `NIL`
-* Trying to call a non-function is a no-op.
-* Standard library function don't throw errors for wrong number of arguments.
-* Binding to a non-symbol simply returns the value.
-
-...
-
-It should perhaps be possible to switch/force this (permissive) mode programmatically - whether this would be useful depends on whether people would use some other language to generate the random programs, in which case not, or whether they would use minimalisp as the evaluation engine as well, where it would be very useful (strict mode for hand-written programs, permissive for other programs.)
-
 **Installable.** Add a `setup.py` which can install an executable script and libraries such that this program works from any directory. Future releases may also build into `.deb`, `.rpm` and friends, especially when we try a C implementation.
