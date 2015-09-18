@@ -1,0 +1,54 @@
+#! /usr/bin/env python
+# If you get an import error here, please use python >= 2.6 .
+from __future__ import print_function
+
+import os.path, fileinput, sys, argparse
+
+try:
+    import minimalisp
+except ImportError:
+    # in project directory: make the script work!
+    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+
+from minimalisp.parse import parse_program
+import minimalisp.vm as vm
+from minimalisp.vm import run, LispRuntimeError
+
+STDLIB_PATH = os.path.join(os.path.dirname(os.path.realpath(vm.__file__)), "stdlib.l")
+
+GENERAL_USAGE = """minimalisp accepts programs on stdin, or by filename."""
+
+def parse_args(args=sys.argv[1:]):
+    p = argparse.ArgumentParser(description=GENERAL_USAGE)
+    p.add_argument('file', help="input file.", type=str)
+    p.add_argument('-l', help="use the standard library functions.", action='store_true')
+    p.add_argument('-p', help="permissive mode - throws less runtime errors.", action='store_true')
+    p.add_argument('-m', help="use the maths library functions.", action='store_true')
+    options, extras = p.parse_known_args(args)
+    return options.l, options.p, options.m, options.file
+
+if __name__ == "__main__":
+    import sys
+    use_stdlib, permissive_mode, with_math, filename = parse_args()
+
+    if permissive_mode:
+        vm.PERMISSIVE = True
+
+    source = None
+    fn = False
+
+    if filename:
+        source = open(filename, 'r').read()
+
+    if source is None:
+        source = '\n'.join([line for line in fileinput.input('-')])
+
+    program = parse_program(source)
+
+    if use_stdlib:
+        use_stdlib = parse_program(open(STDLIB_PATH, 'r').read())
+
+    try:
+        run(program, use_stdlib=use_stdlib, with_math=with_math)
+    except LispRuntimeError as e:
+        print("  \033[1;31mERROR:\033[0m  %s" % e.message)
