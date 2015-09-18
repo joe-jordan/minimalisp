@@ -76,7 +76,7 @@ def peval(context, o):
         return context[o]
 
     # if o is a function:
-    if isinstance(o, LispFunction):
+    if hasattr(o, '__call__'):
         raise LispRuntimeError("cannot evaluate a function")
 
     # in other cases, o must be a pair.
@@ -91,7 +91,7 @@ def peval(context, o):
         except KeyError:
             raise LispRuntimeError("unbound symbol %r" % pair.left)
 
-        if not isinstance(function, LispFunction):
+        if not hasattr(function, '__call__'):
             raise LispRuntimeError("symbol %r is not bound to a function, but %r" % (pair.left, function))
     elif isinstance(pair.left, Pair):
         # pair.left is a pair. it is important to eval it here - this is the one context in which
@@ -99,16 +99,16 @@ def peval(context, o):
         # function, rather than dying here.
         function = peval(context, pair.left)
 
-        if not isinstance(function, LispFunction):
+        if not hasattr(function, '__call__'):
             raise LispRuntimeError("result %r cannot be executed as a function" % function)
-    elif isinstance(pair.left, LispFunction):
+    elif hasattr(pair.left, '__call__'):
         # someone has got a function object in the right place for us. Go them!
         function = pair.left
     else:
         # pair.left is a Value, or something.
         raise LispRuntimeError("result %r cannot be executed as a function" % pair.left)
 
-    return function.execute(context, pair.right)
+    return function(context, pair.right)
 
 
 def pre_execute_impl(context, arguments):
@@ -125,7 +125,7 @@ def pre_execute_impl(context, arguments):
     return evaled_args
 
 
-def static_pre_execute(method="", minc=0, maxc=float('inf')):
+def pre_execute(method="", minc=0, maxc=float('inf')):
     def inner_decorator(execute):
         def actual_execute(context, arguments):
             evaled_arguments = pre_execute_impl(context, arguments)
@@ -166,7 +166,7 @@ def static_validate_value_type(method="", types=(object,)):
                 if not isinstance(t, Value):
                     raise ValueError("%s: cannot compute with non-value %r" % (method, t))
                 if not isinstance(t.v, types):
-                    raise ValueError("%s: expected %r, found %r" % (method, t))
+                    raise ValueError("%s: expected %r, found %r" % (method, types, t))
 
             # *args arrives as a tuple, not a list.
             return execute(*([context] + list(terms)))
@@ -174,210 +174,171 @@ def static_validate_value_type(method="", types=(object,)):
     return inner_decorator
 
 
-class LispFunction(LispType):
+@pre_execute("BIND", 2, 2)
+def bind(context, symbol=None, value=NIL(), *args):
+    if not isinstance(symbol, Symbol):
+        if not PERMISSIVE:
+            raise LispRuntimeError('cannot BIND value %r to non-symbol %r' % (value, symbol))
+    else:
+        context[symbol] = value
+
+    return NIL()
+
+
+def noop(*args):
     pass
 
 
-class BindFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("BIND", 2, 2)
-    def execute(context, symbol=None, value=NIL(), *args):
-        if not isinstance(symbol, Symbol):
-            if not PERMISSIVE:
-                raise LispRuntimeError('cannot BIND value %r to non-symbol %r' % (value, symbol))
+@pre_execute("WITH", 2)
+def _with(context, arg_bindings=NIL(), *lines_of_function_body):
+    # unwind with's arguments; two pairs.
+    args_as_list = False
+    if not (isinstance(arg_bindings, Pair) or isinstance(arg_bindings, Symbol)):
+        if not PERMISSIVE:
+            raise LispRuntimeError('WITH: %r is not an argument list.' % arg_bindings)
+    else:
+        if isinstance(arg_bindings, Symbol):
+            args_as_list = True
+
+    if not lines_of_function_body:
+        if PERMISSIVE:
+            return noop
         else:
-            context[symbol] = value
+            raise LispRuntimeError('WITH: cannot define an empty function.')
 
-        return NIL()
-
-
-class NoOpFunction(LispFunction):
-    @staticmethod
-    def execute(*args):
-        pass
+    # actually build the LispFunction object:
+    return UserLispFunction(arg_bindings, lines_of_function_body, args_as_list=args_as_list)
 
 
-class WithFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("WITH", 2)
-    def execute(context, arg_bindings=NIL(), *lines_of_function_body):
-        # unwind with's arguments; two pairs.
-        args_as_list = False
-        if not (isinstance(arg_bindings, Pair) or isinstance(arg_bindings, Symbol)):
+@pre_execute("EVAL", 1)
+def _eval(context, *lines):
+    retval = NIL()
+
+    for l in lines:
+        retval = peval(context, l)
+
+    return retval
+
+
+@pre_execute("PUTS")
+def puts(context, *values):
+    if not PERMISSIVE and any([
+        not isinstance(v, (Value, Pair, Symbol, NIL)) and not hasattr(v, '__call__') for v in values
+    ]):
+        raise LispRuntimeError("expected lisp objects, got %s" % repr(values))
+    print("".join([repr(value) for value in values]))
+    return NIL()
+
+
+@pre_execute("GETS", 0)
+def gets(context, *symbols_to_bind):
+    # if called with no arguments, returns a single gets.
+    if len(symbols_to_bind) == 0:
+        return parse_token_prompt(raw_input(">"))
+
+    # with arguments, binds N gets' to them.
+    for s in symbols_to_bind:
+        if not isinstance(s, Symbol):
             if not PERMISSIVE:
-                raise LispRuntimeError('WITH: %r is not an argument list.' % arg_bindings)
+                raise LispRuntimeError("GETS: cannot bind to non-symbol %r." % s)
         else:
-            if isinstance(arg_bindings, Symbol):
-                args_as_list = True
+            context[s] = parse_token_prompt(raw_input("%s>" % repr(s)))
 
-        if not lines_of_function_body:
-            if PERMISSIVE:
-                return NoOpFunction()
-            else:
-                raise LispRuntimeError('WITH: cannot define an empty function.')
-
-        # actually build the LispFunction object:
-        return UserLispFunction(arg_bindings, lines_of_function_body, args_as_list=args_as_list)
+    return NIL()
 
 
-class EvalFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("EVAL", 1)
-    def execute(context, *lines):
-        retval = NIL()
-
-        for l in lines:
-            retval = peval(context, l)
-
-        return retval
+@pre_execute("CONS", 2, 2)
+def cons(context, left=NIL(), right=NIL(), *args):
+    return Pair(left, right)
 
 
-class PutsFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("PUTS")
-    def execute(context, *values):
-        if not PERMISSIVE and any([not isinstance(v, (Value, Pair, Symbol, LispFunction, NIL)) for v in values]):
-            raise LispRuntimeError("expected lisp objects, got %s" % repr(values))
-        print("".join([repr(value) for value in values]))
-        return NIL()
+@pre_execute("CAR", 1, 1)
+def car(context, pair=NIL(), *args):
+    if not isinstance(pair, Pair):
+        if PERMISSIVE:
+            return pair
+        raise LispRuntimeError('CAR: %r is not a pair.' % pair)
+
+    return pair.left
 
 
-class GetsFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("GETS", 0)
-    def execute(context, *symbols_to_bind):
-        # if called with no arguments, returns a single gets.
-        if len(symbols_to_bind) == 0:
-            return parse_token_prompt(raw_input(">"))
+@pre_execute("CDR", 1, 1)
+def cdr(context, pair=NIL(), *args):
+    if not isinstance(pair, Pair):
+        if PERMISSIVE:
+            return pair
+        raise LispRuntimeError('CDR: %r is not a pair.' % pair)
 
-        # with arguments, binds N gets' to them.
-        for s in symbols_to_bind:
-            if not isinstance(s, Symbol):
-                if not PERMISSIVE:
-                    raise LispRuntimeError("GETS: cannot bind to non-symbol %r." % s)
-            else:
-                context[s] = parse_token_prompt(raw_input("%s>" % repr(s)))
-
-        return NIL()
+    return pair.right
 
 
-class ConsFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("CONS", 2, 2)
-    def execute(context, left=NIL(), right=NIL(), *args):
-        return Pair(left, right)
+@pre_execute("+")
+@static_validate_value_type("+", numbers)
+def plus(context, *terms):
+    return Value(sum([i.v for i in terms]), actual=True)
 
 
-class CarFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("CAR", 1, 1)
-    def execute(context, pair=NIL(), *args):
-        if not isinstance(pair, Pair):
-            if PERMISSIVE:
-                return pair
-            raise LispRuntimeError('CAR: %r is not a pair.' % pair)
-
-        return pair.left
+@pre_execute("-", 1)
+@static_validate_value_type("-", numbers)
+def minus(context, *terms):
+    return Value(terms[0].v - sum([i.v for i in terms[1:]]), actual=True)
 
 
-class CdrFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("CDR", 1, 1)
-    def execute(context, pair=NIL(), *args):
-        if not isinstance(pair, Pair):
-            if PERMISSIVE:
-                return pair
-            raise LispRuntimeError('CDR: %r is not a pair.' % pair)
-
-        return pair.right
+@pre_execute("*")
+@static_validate_value_type("*", numbers)
+def multiply(context, *terms):
+    return Value(reduce(mul, [i.v for i in terms], 1), actual=True)
 
 
-class PlusFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("+")
-    @static_validate_value_type("+", numbers)
-    def execute(context, *terms):
-        return Value(sum([i.v for i in terms]), actual=True)
+@pre_execute("/", 1)
+@static_validate_value_type("/", numbers)
+def divide(context, *terms):
+    # We use python 3's "true division", which gives floats for two int arguments.
+    return Value(terms[0].v / reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
-class MinusFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("-", 1)
-    @static_validate_value_type("-", numbers)
-    def execute(context, *terms):
-        return Value(terms[0].v - sum([i.v for i in terms[1:]]), actual=True)
+@pre_execute("i/", 1)
+@static_validate_value_type("i/", integers)
+def idivide(context, *terms):
+    return Value(terms[0].v // reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
-class MultiplyFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("*")
-    @static_validate_value_type("*", numbers)
-    def execute(context, *terms):
-        return Value(reduce(mul, [i.v for i in terms], 1), actual=True)
+@pre_execute("%", 2)
+@static_validate_value_type("%", integers)
+def modulo(context, *terms):
+    return Value(terms[0].v % reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
 
 
-class DivideFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("/", 1)
-    @static_validate_value_type("/", numbers)
-    def execute(context, *terms):
-        # We use python 3's "true division", which gives floats for two int arguments.
-        return Value(terms[0].v / reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
+@pre_execute("ROUND", 1, 1)
+@static_validate_value_type("ROUND", floats)
+def _round(context, f):
+    return Value(int(round(f.v)), actual=True)
 
 
-class IntegerDivideFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("i/", 1)
-    @static_validate_value_type("i/", integers)
-    def execute(context, *terms):
-        return Value(terms[0].v // reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
+@pre_execute(".")
+@static_validate_value_type(".", strings)
+def concatinate(context, *terms):
+    return Value("".join(terms), actual=True)
 
 
-class ModuloFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("%", 2)
-    @static_validate_value_type("%", integers)
-    def execute(context, *terms):
-        return Value(terms[0].v % reduce(mul, [i.v for i in terms[1:]], 1), actual=True)
+@pre_execute('SPLIT', 1, 2)
+@static_validate_value_type('SPLIT', strings)
+def split(context, input, substring=None):
+    retvalue = NIL()
+
+    args = []
+    if substring:
+        args.append(substring)
+
+    for tok in reversed(input.v.split(*args)):
+        retvalue = Pair(Value(tok, actual=True), retvalue)
+
+    return retvalue
 
 
-class RoundFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("ROUND", 1, 1)
-    @static_validate_value_type("ROUND", floats)
-    def execute(context, f):
-        return Value(int(round(f.v)), actual=True)
-
-
-class ConcatinateFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute(".")
-    @static_validate_value_type(".", strings)
-    def execute(context, *terms):
-        return Value("".join(terms), actual=True)
-
-class SplitFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute('SPLIT', 1, 2)
-    @static_validate_value_type('SPLIT', strings)
-    def execute(context, input, substring=None):
-        retvalue = NIL()
-
-        args = []
-        if substring:
-            args.append(substring)
-
-        for tok in reversed(input.v.split(*args)):
-            retvalue = Pair(Value(tok, actual=True), retvalue)
-
-        return retvalue
-
-
-class RandFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("RAND", 0, 0)
-    def execute(context):
-        return Value(random.random(), actual=True)
+@pre_execute("RAND", 0, 0)
+def rand(context):
+    return Value(random.random(), actual=True)
 
 
 # Logical Functions:
@@ -389,108 +350,96 @@ class RandFunction(LispFunction):
 # So, we choose to return Value(1, actual=True). This means we can (+ test test2 test3) and see how
 # many passed, among other things.
 
-class IfFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("IF", 2, 3)
-    def execute(context, test, then_do, else_do=None):
-        retvalue = NIL()
+@pre_execute("IF", 2, 3)
+def _if(context, test, then_do, else_do=None):
+    retvalue = NIL()
 
-        if (isinstance(test, Pair) or
-            (isinstance(test, Symbol) and test in context) or
-            (isinstance(test, Value) and test.v)):
-            retvalue = peval(context, then_do)
-        elif else_do:
-            retvalue = peval(context, else_do)
+    if (isinstance(test, Pair) or
+        (isinstance(test, Symbol) and test in context) or
+        (isinstance(test, Value) and test.v)):
+        retvalue = peval(context, then_do)
+    elif else_do:
+        retvalue = peval(context, else_do)
 
-        return retvalue
+    return retvalue
 
 
-class EqualFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("=", 2)
-    def execute(context, *terms):
-        retvalue = Value(1, actual=True)
-        lvalue = terms[0]
+@pre_execute("=", 2)
+def equal(context, *terms):
+    retvalue = Value(1, actual=True)
+    lvalue = terms[0]
 
-        for rvalue in terms[1:]:
-            if lvalue != rvalue:
-                retvalue = NIL()
-                break
+    for rvalue in terms[1:]:
+        if lvalue != rvalue:
+            retvalue = NIL()
+            break
 
-        return retvalue
+    return retvalue
 
 
-class IndenticalFunction(LispFunction):
+@pre_execute("==", 2)
+def identical(context, *terms):
     """This function is not very useful, I think, but can't possibly be implemented in the language
     without a minimalisp version of python's `id`, which is even worse."""
-    @staticmethod
-    @static_pre_execute("==", 2)
-    def execute(context, *terms):
-        retvalue = Value(1, actual=True)
-        lvalue = terms[0]
+    retvalue = Value(1, actual=True)
+    lvalue = terms[0]
 
-        for rvalue in terms[1:]:
-            if id(lvalue) != id(rvalue):
-                retvalue = NIL()
-                break
+    for rvalue in terms[1:]:
+        if id(lvalue) != id(rvalue):
+            retvalue = NIL()
+            break
 
-        return retvalue
+    return retvalue
 
 
-class GreaterThanFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute(">", 2)
-    @static_validate_value_type(">", values)
-    def execute(context, *terms):
-        retvalue = Value(1, actual=True)
-        lvalue = terms[0]
+@pre_execute(">", 2)
+@static_validate_value_type(">", values)
+def greater_than(context, *terms):
+    retvalue = Value(1, actual=True)
+    lvalue = terms[0]
 
-        for rvalue in terms[1:]:
-            if lvalue.v <= rvalue.v:
-                retvalue = NIL()
-                break
+    for rvalue in terms[1:]:
+        if lvalue.v <= rvalue.v:
+            retvalue = NIL()
+            break
 
-        return retvalue
+    return retvalue
 
 
-class LessThanFunction(LispFunction):
-    @staticmethod
-    @static_pre_execute("<", 2)
-    @static_validate_value_type("<", values)
-    def execute(context, *terms):
-        retvalue = Value(1, actual=True)
-        lvalue = terms[0]
+@pre_execute("<", 2)
+@static_validate_value_type("<", values)
+def less_than(context, *terms):
+    retvalue = Value(1, actual=True)
+    lvalue = terms[0]
 
-        for rvalue in terms[1:]:
-            if lvalue.v >= rvalue.v:
-                retvalue = NIL()
-                break
+    for rvalue in terms[1:]:
+        if lvalue.v >= rvalue.v:
+            retvalue = NIL()
+            break
 
-        return retvalue
+    return retvalue
 
 
-class WhileFunction(LispFunction):
+@pre_execute("DOWHILE", 1)
+def dowhile(context, *body):
     """works like EVAL, except it repeats the function body again and again until its return
-    value is NIL or 0. Always returns NIL,but leaks bindings."""
-    @staticmethod
-    @static_pre_execute("DOWHILE", 1)
-    def execute(context, *body):
-        result = NIL()
+    value is NIL or 0. Always returns NIL, but leaks bindings."""
+    result = NIL()
+
+    for line in body:
+        result = peval(context, line)
+
+    while (isinstance(result, Pair) or
+        (isinstance(result, Symbol) and result in context) or
+        (isinstance(result, Value) and result.v)):
 
         for line in body:
             result = peval(context, line)
 
-        while (isinstance(result, Pair) or
-            (isinstance(result, Symbol) and result in context) or
-            (isinstance(result, Value) and result.v)):
-
-            for line in body:
-                result = peval(context, line)
-
-        return NIL()
+    return NIL()
 
 
-class UserLispFunction(LispFunction):
+class UserLispFunction(object):
     def __init__(self, argbindings, functionbody, args_as_list=False):
         # both are unquoted pairs, which WITH will check for us.
         self.args_as_list = args_as_list
@@ -512,8 +461,11 @@ class UserLispFunction(LispFunction):
 
             self.argbindings = args
 
+    def __repr__(self):
+        return "(user function)"
+
     @instance_pre_execute("(user function)")
-    def execute(self, outer_context, *ap):
+    def __call__(self, outer_context, *ap):
         # initialise a new context, with arguments bound to names specified (or NIL if none passed):
         context = Context(parent=outer_context)
         ab = self.argbindings
@@ -537,31 +489,32 @@ class UserLispFunction(LispFunction):
 
 
 lib = {
-    Symbol('bind'): BindFunction(),
-    Symbol('with'): WithFunction(),
-    Symbol('eval'): EvalFunction(),
-    Symbol('puts'): PutsFunction(),
-    Symbol('gets'): GetsFunction(),
-    Symbol('cons'): ConsFunction(),
-    Symbol('car'): CarFunction(),
-    Symbol('cdr'): CdrFunction(),
-    Symbol('+'): PlusFunction(),
-    Symbol('-'): MinusFunction(),
-    Symbol('*'): MultiplyFunction(),
-    Symbol('/'): DivideFunction(),
-    Symbol('i/'): IntegerDivideFunction(),
-    Symbol('%'): ModuloFunction(),
-    Symbol('round'): RoundFunction(),
-    Symbol('.'): ConcatinateFunction(),
-    Symbol('split'): SplitFunction(),
-    Symbol('rand'): RandFunction(),
-    Symbol('if'): IfFunction(),
-    Symbol('>'): GreaterThanFunction(),
-    Symbol('<'): LessThanFunction(),
-    Symbol('='): EqualFunction(),
-    Symbol('=='): IndenticalFunction(),
-    Symbol('dowhile'): WhileFunction()
+    Symbol('bind'): bind,
+    Symbol('with'): _with,
+    Symbol('eval'): _eval,
+    Symbol('puts'): puts,
+    Symbol('gets'): gets,
+    Symbol('cons'): cons,
+    Symbol('car'): car,
+    Symbol('cdr'): cdr,
+    Symbol('+'): plus,
+    Symbol('-'): minus,
+    Symbol('*'): multiply,
+    Symbol('/'): divide,
+    Symbol('i/'): idivide,
+    Symbol('%'): modulo,
+    Symbol('round'): _round,
+    Symbol('.'): concatinate,
+    Symbol('split'): split,
+    Symbol('rand'): rand,
+    Symbol('if'): _if,
+    Symbol('>'): greater_than,
+    Symbol('<'): less_than,
+    Symbol('='): equal,
+    Symbol('=='): identical,
+    Symbol('dowhile'): dowhile
 }
+
 
 def run(program, use_stdlib=False, with_math=False):
     outer_context = Context(lib)
@@ -571,7 +524,7 @@ def run(program, use_stdlib=False, with_math=False):
 
         stdlib = UserLispFunction(NIL(), stdlib_program)
 
-        stdlib.execute(outer_context, NIL())
+        stdlib(outer_context, NIL())
 
         outer_context = stdlib.last_execute_context
 
@@ -579,4 +532,4 @@ def run(program, use_stdlib=False, with_math=False):
         import maths
         outer_context.update(maths.maths_functions)
 
-    UserLispFunction(NIL(), program).execute(outer_context, NIL())
+    UserLispFunction(NIL(), program)(outer_context, NIL())

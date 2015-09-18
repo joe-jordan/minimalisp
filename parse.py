@@ -196,15 +196,15 @@ def sexprs_to_pairs(s):
 
 
 def parse_program(inp):
-   prog = parse(inp)
+    prog = parse(inp)
 
-   # now recursively walk over all s-expressions, building tokens into Values, Symbols, and Pair Separator placeholders.
-   parse_tokens(prog)
+    # now recursively walk over all s-expressions, building tokens into Values, Symbols, and Pair Separator placeholders.
+    parse_tokens(prog)
 
-   # identify any pair literals and instantiate those first:
-   do_pair_literals(prog)
+    # identify any pair literals and instantiate those first:
+    do_pair_literals(prog)
 
-   # finally, build actual Pairs for all the proper S-expressions:
-   prog = [sexprs_to_pairs(s) for s in prog]
+    # finally, build actual Pairs for all the proper S-expressions:
+    prog = [sexprs_to_pairs(s) for s in prog]
 
-   return prog
+    return prog
