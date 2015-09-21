@@ -1,4 +1,4 @@
-; `apply` is trivial to implement in minimalisp itself:
+stdlib = """; `apply` is trivial to implement in minimalisp itself:
 (bind 'apply (with '(f args)
                    '(eval (bind 'expr (cons 'f args))
                           (eval expr))))
@@ -43,3 +43,4 @@
 (bind 'randint (with '(lim)
                      '(eval (if 'lim NIL '(bind 'lim 256))
                             (round (* lim (rand))))))
+"""
