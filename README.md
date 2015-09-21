@@ -47,3 +47,8 @@ The program `tests/tutorial.l` will run, with `scripts/minimalisp -l tests/tutor
 
 I have started using the [github wiki](https://github.com/joe-jordan/minimalisp/wiki) for the function reference.
 
+## Next target release:
+
+minimalisp 1.1 will support two new functions: `LOAD` for parsing S-expression files as literals, and `IMPORT`, for loading minimalisp programs as libraries (importing their top-level symbols into your own context.)
+
+Several new concepts must be implemented within the VM before this will work correctly: the local variable bindings of a program must not be visible from the library code, in order to allow effective separation of concerns. This may require a tree-like, rather than list-like, set of contexts, or possibly a new top-level object representing a file (the name "environment" has been proposed for this.)
