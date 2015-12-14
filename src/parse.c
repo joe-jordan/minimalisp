@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <errno.h>
 /*
 #include "values.h"
 */
@@ -106,13 +107,12 @@ char** get_lines(char* file_contents) {
   return lines;
 }
 
-/*
-/ * remove_comments(lines)
+/* remove_comments(lines)
  *
  * shortens the strings in `lines` (by adding a nul-terminator) to remove any
  * comments from them - the first non-string `;` .
  *
- * * /
+ * */
 unsigned remove_comments(char** lines) {
   unsigned i = 0;
   char* line;
@@ -138,12 +138,19 @@ unsigned remove_comments(char** lines) {
           }
       }
     }
+    if (in_quote) {
+      char* err;
+      asprintf(&err, "quote on line %u not closed", i);
+      errno = EINVAL;
+      perror(err);
+      exit(1);
+    }
     ++i;
   }
   return i;
 }
 
-
+/*
 / * get_tokens(commentless_lines, num_lines)
  *
  * converts the NULL-terminated list `commentless_lines` into an s-expr tree of
