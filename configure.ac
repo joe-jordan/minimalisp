@@ -15,6 +15,12 @@ AC_PROG_CC
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lcheck':
 AC_CHECK_LIB([check], [main])
+# FIXME: Replace `main' with a function in `-lcheck_pic':
+AC_CHECK_LIB([check_pic], [main])
+# FIXME: Replace `main' with a function in `-lm':
+AC_CHECK_LIB([m], [main])
+# FIXME: Replace `main' with a function in `-lrt':
+AC_CHECK_LIB([rt], [main])
 
 # Checks for header files.
 AC_CHECK_HEADERS([stdlib.h string.h unistd.h])

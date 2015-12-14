@@ -55,8 +55,8 @@ char* read_file(char* absolute_path) {
   return content;
 }
 
-/*
-/ * get_lines(file_contents)
+
+/* get_lines(file_contents)
  *
  * converts a source file buffer `file_contents` into a list of pointers to
  * lines. These will be pointers into the original buffer, whose contents is
@@ -64,7 +64,7 @@ char* read_file(char* absolute_path) {
  *
  * The return value is NULL-terminated.
  *
- * * /
+ * */
 char** get_lines(char* file_contents) {
   unsigned N = 256;
   char** lines = malloc(N*sizeof(char*));
@@ -94,10 +94,19 @@ char** get_lines(char* file_contents) {
       ++cursor;
     }
   }
+
+  // add the last line, and NULL terminate the array:
+  lines[lines_added] = line_start;
+  if (lines_added == N) {
+    N += 1;
+    lines = realloc(lines, N*sizeof(char*));
+  }
+  lines[lines_added+1] = NULL;
+
   return lines;
 }
 
-
+/*
 / * remove_comments(lines)
  *
  * shortens the strings in `lines` (by adding a nul-terminator) to remove any
