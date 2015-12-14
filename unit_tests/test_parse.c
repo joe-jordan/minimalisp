@@ -41,7 +41,7 @@ END_TEST
 #endif
 
 START_TEST(test_read_file_empty) {
-  /* SETUP: create a file with known contents in tmp: */
+  /* SETUP: create a file with no contents in tmp: */
   char* filename = strdup("/tmp/empty_file.mnl");
   FILE* f = fopen(filename, "a");
   ck_assert_msg(f != NULL, "not allowed to write to a file in /tmp...");
@@ -126,10 +126,6 @@ START_TEST(test_get_lines_with_256_lines) {
     free(multiline_string);
     multiline_string = tmp;
   }
-
-  printf("DEBUG:\n");
-  printf("%s", multiline_string);
-  printf("END DEBUG\n");
 
   /* TEST: call the function */
   char** lines = get_lines(multiline_string);
