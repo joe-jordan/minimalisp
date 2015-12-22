@@ -37,3 +37,7 @@ nosetests.xml
 
 # Pycharm
 .idea
+
+# Flex and Bison
+lex.yy.c
+grammar.tab.c
