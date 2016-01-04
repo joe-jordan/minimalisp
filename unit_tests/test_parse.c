@@ -230,9 +230,32 @@ START_TEST(test_remove_comments_unclosed_string) {
 END_TEST
 #endif
 
+START_TEST(test_get_tokens_literals) {
+  /* SETUP */
+  unsigned N = 7;
+  char *lines[N];
+
+  lines[0] = strdup("single_symbol_although_quite_long");
+  lines[1] = strdup("983459634");
+  lines[2] = strdup("\'quoted_symbol");
+  lines[3] = strdup("#deadbeef");
+  lines[4] = strdup("\"strings! glorious strings!\"");
+  lines[5] = strdup("NIL");
+  lines[6] = NULL;
+
+  /* TEST */
+  get_tokens(lines);
+
+  /* TEARDOWN */
+  for (unsigned i = 0; i < N-1; ++i) {
+    free(lines[i]);
+  }
+}
+END_TEST
+
 Suite* parser_suite(void) {
   Suite *s;
-  TCase *tc_rf, *tc_gl, *tc_rc;
+  TCase *tc_rf, *tc_gl, *tc_rc, *tc_gt;
 
   s = suite_create("Parser");
 
@@ -261,6 +284,11 @@ Suite* parser_suite(void) {
   tcase_add_exit_test(tc_rc, test_remove_comments_unclosed_string, 1);
 #endif
   suite_add_tcase(s, tc_rc);
+
+  tc_gt = tcase_create("get_tokens");
+
+  tcase_add_test(tc_gt, test_get_tokens_literals);
+  suite_add_tcase(s, tc_gt);
 
   return s;
 }
