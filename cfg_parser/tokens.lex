@@ -1,6 +1,8 @@
 %{
+#include <libiberty/libiberty.h>
 #define IS_FLEX_SRC
 #include "lex.h"
+
 %}
 
 %%
@@ -12,17 +14,17 @@
 " "+  { return SPACE; }
 \"(\\.|[^"])+\" {
   /* copy the token into a string, missing out the initial quote. */
-  asprintfout(&(yy_value.string), "%s", (yytext+1));
+  asprintf(&(yylval.string), "%s", (yytext+1));
   /* blank off the trailing quote: */
-  yyvalue.string[yyleng-2] = '\0';
+  yylval.string[yyleng-2] = '\0';
   /* Finally, we also pull out any escape characters. */
   unsigned read=0, write=0;
   while (read < yyleng - 1) {
-    if (yy_value.string[read] == '\\') {
+    if (yylval.string[read] == '\\') {
       ++read;
     }
     if (read != write) {
-      yy_value.string[write] = yy_value.string[read];
+      yylval.string[write] = yylval.string[read];
     }
     ++read;
     ++write;
@@ -38,27 +40,27 @@
   if (yytext[0] == '#') {
     --off;
   }
-  sscanf(yytext+off, "%lx", &yy_value.integer);
+  sscanf(yytext+off, "%lx", &yylval.integer);
   return HEX_INT;
 }
 ("+"|"-")?0[0-7]+ {
-  sscanf(yytext, "%lo", &yy_value.integer);
+  sscanf(yytext, "%lo", &yylval.integer);
   return OCT_INT;
 }
 ("+"|"-")?[0-9]+ {
-  sscanf(yytext, "%ld", &yy_value.integer);
+  sscanf(yytext, "%ld", &yylval.integer);
   return INT;
 }
 ("+"|"-")?([0-9]*\.[0-9]+|[0-9]+\.)((e|E)("+"|"-")?[0-9]+)? {
-  sscanf(yytext, "%lf", &yy_value.real);
+  sscanf(yytext, "%lf", &yylval.real);
   return FLOAT;
 }
 [^ ()'\n]+ {
-  asprintf(&(yy_value.string), "%s", yytext);
+  asprintf(&(yylval.string), "%s", yytext);
   return SYMBOL;
 }
 \'[^ ()'\n]+ {
-  asprintf(&(yy_value.string), "%s", (yytext + 1))
+  asprintf(&(yylval.string), "%s", (yytext + 1));
   return QUOTED_SYMBOL;
 }
 \n {}
@@ -81,13 +83,14 @@ void collect_flex_buffer(void* buffer)
 }
 
 #ifdef WITH_LEX_MAIN
-void main() {
+int main() {
   int tok;
   printf("`");
-  while (tok = yylex()) {
+  while ((tok = yylex())) {
     switch (tok) {
       case INVALID:
         printf("[invalid thing]`");
+        return 1;
         break;
       case DOT:
         printf(" . `");

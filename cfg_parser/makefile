@@ -1,5 +1,8 @@
+# must disable the unused-function warning with flex.
+CFLAGS=-Wall -Werror -Wno-unused-function
+
 tokenize: lex.yy.c
-	cc -DWITH_LEX_MAIN -o $@ lex.yy.c -lfl
+	cc $(CFLAGS) -DWITH_LEX_MAIN -o $@ lex.yy.c -lfl -liberty
 
 lex.yy.c: tokens.lex
 	flex tokens.lex
@@ -8,6 +11,6 @@ grammar.tab.c: grammar.c
 	bison -d grammar.c
 
 grammarize: lex.yy.c grammar.tab.c
-	cc -o $@ lex.yy.c grammar.tab.c -lfl
+	cc $(CFLAGS) -o $@ lex.yy.c grammar.tab.c -lfl
 
 all: tokenize
