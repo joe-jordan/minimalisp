@@ -131,5 +131,9 @@ int main() {
     }
   }
   printf("\n");
+  /* If we could compile with C99, we wouldn't need to explicitly return 0.
+   * However, flex doesn't generate C99-compliant code, and this goes in the
+   * same file. */
+  return 0;
 }
 #endif
