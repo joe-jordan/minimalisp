@@ -1,0 +1,17 @@
+Example to build the software checked out from the repo (requires autotools):
+
+$ ./regen_autotools.sh
+$ mkdir build
+$ cd build
+$ ../configure
+$ make
+
+optionally to run unit tests:
+
+$ make check
+
+to install:
+
+$ sudo make install
+
+
