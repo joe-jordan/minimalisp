@@ -1,5 +1,6 @@
 #include <values.h>
 #include <gmp.h>
+#include <string.h>
 
 mnl_object* int_factory(mnl_pool* pool) {
   mnl_object* o = allocate(pool, sizeof(mnl_object));
@@ -19,7 +20,14 @@ void int_release(mnl_pool* pool, mnl_object* i) {
 
 mnl_object* mnl_integer_from_hex_string(mnl_pool* pool, char* s) {
   mnl_object* i = int_factory(pool);
+  if (s[0] == '-') {
+    s = strdup(s);
+    s[1] = '-';
+  }
   int ret = mpz_set_str(*(mpz_t*)(i->value), s+1, 16);
+  if (s[0] == '-') {
+    free(s);
+  }
   if (ret) {
     int_release(pool, i);
     return NULL;
@@ -50,7 +58,7 @@ mnl_object* mnl_integer_from_decimal_string(mnl_pool* pool, char* s) {
 }
 
 mnl_object* mnl_integer_from_string(mnl_pool* pool, char* s) {
-  switch (s[0]) {
+  switch (s[0] == '-' ? s[1] : s[0]) {
     case '#':
       return mnl_integer_from_hex_string(pool, s);
     case '0':
