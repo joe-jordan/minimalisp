@@ -56,6 +56,7 @@ START_TEST(test_mnl_integer_from_string_tricky) {
 
   test_strings("int", valid_integers, parse_int_compare_correct);
 
+  mpz_clear(correct_value);
   free(valid_integers);
 }
 END_TEST
