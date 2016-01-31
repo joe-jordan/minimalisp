@@ -3,6 +3,7 @@
 #define __MNL_RAM_H__
 
 #include <stdlib.h>
+#include <object.h>
 
 typedef struct mnl_pool mnl_pool;
 
@@ -10,7 +11,7 @@ mnl_pool* allocate_pool();
 void try_release_pool(mnl_pool*);
 
 void* allocate(mnl_pool* p, size_t s);
-void release(mnl_pool* p, void* op);
+void release(mnl_pool* p, mnl_object* o);
 
 #endif
 

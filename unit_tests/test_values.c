@@ -28,7 +28,7 @@ mnl_pool* memory_pool = NULL;
     mnl_object* i = mnl_integer_from_string(memory_pool, string); \
     ck_assert_ptr_ne(i, NULL); \
     ck_assert_uint_eq(i->type, MNL_INTEGER); \
-    int_release(memory_pool, i); \
+    release(memory_pool, i); \
   } while(0)
 
 START_TEST(test_mnl_integer_from_string) {
@@ -44,7 +44,7 @@ END_TEST
     ck_assert_ptr_ne(i, NULL); \
     ck_assert_uint_eq(i->type, MNL_INTEGER); \
     ck_assert_int_eq(mpz_cmp(*(mpz_t*)(i->value), correct_value), 0); \
-    int_release(memory_pool, i); \
+    release(memory_pool, i); \
   } while(0)
 
 
@@ -75,9 +75,10 @@ END_TEST
 
 #define parse_real_success(string) \
   do { \
-    mnl_object* a = mnl_real_from_string(memory_pool, start); \
-    ck_assert_ptr_ne(a, NULL); \
-    ck_assert_uint_eq(a->type, MNL_REAL); \
+    mnl_object* r = mnl_real_from_string(memory_pool, start); \
+    ck_assert_ptr_ne(r, NULL); \
+    ck_assert_uint_eq(r->type, MNL_REAL); \
+    release(memory_pool, r); \
   } while(0)
 
 START_TEST(test_mnl_real_from_string) {

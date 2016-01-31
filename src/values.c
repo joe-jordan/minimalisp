@@ -11,23 +11,6 @@ mnl_object* int_factory(mnl_pool* pool) {
 }
 
 
-void int_release(mnl_pool* pool, mnl_object* i) {
-  if (i->value != NULL) {
-    mpz_clear(*(mpz_t*)(i->value));
-    release(pool, i->value);
-  }
-  release(pool, i);
-}
-
-void real_release(mnl_pool* pool, mnl_object* r) {
-  if (r->value != NULL) {
-    mpf_clear(*(mpf_t*)(r->value));
-    release(pool, r->value);
-  }
-  release(pool, r);
-}
-
-
 mnl_object* mnl_integer_from_hex_string(mnl_pool* pool, char* s) {
   mnl_object* i = int_factory(pool);
   if (s[0] == '-') {
@@ -39,7 +22,7 @@ mnl_object* mnl_integer_from_hex_string(mnl_pool* pool, char* s) {
     free(s);
   }
   if (ret) {
-    int_release(pool, i);
+    release(pool, i);
     return NULL;
   }
   return i;
@@ -50,7 +33,7 @@ mnl_object* mnl_integer_from_octal_string(mnl_pool* pool, char* s) {
   mnl_object* i = int_factory(pool);
   int ret = mpz_set_str(*(mpz_t*)(i->value), s, 8);
   if (ret) {
-    int_release(pool, i);
+    release(pool, i);
     return NULL;
   }
   return i;
@@ -61,7 +44,7 @@ mnl_object* mnl_integer_from_decimal_string(mnl_pool* pool, char* s) {
   mnl_object* i = int_factory(pool);
   int ret = mpz_set_str(*(mpz_t*)(i->value), s, 10);
   if (ret) {
-    int_release(pool, i);
+    release(pool, i);
     return NULL;
   }
   return i;
@@ -93,7 +76,7 @@ mnl_object* mnl_real_from_string(mnl_pool* pool, char* s) {
 
   int ret = mpf_set_str(*(mpf_t*)(r->value), s, 10);
   if (ret) {
-    real_release(pool, r);
+    release(pool, r);
     return NULL;
   }
 
