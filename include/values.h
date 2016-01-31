@@ -19,12 +19,16 @@ typedef struct {
   void* value;
 } mnl_object;
 
-
+/* integers */
 
 mnl_object* mnl_integer_from_decimal_string(mnl_pool* pool, char* s);
 mnl_object* mnl_integer_from_hex_string(mnl_pool* pool, char* s);
 mnl_object* mnl_integer_from_octal_string(mnl_pool* pool, char* s);
 mnl_object* mnl_integer_from_string(mnl_pool* pool, char* s);
+
+/* float */
+
+mnl_object* mnl_real_from_string(mnl_pool* pool, char* s);
 
 #endif
 

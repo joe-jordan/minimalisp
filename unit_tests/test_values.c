@@ -101,8 +101,40 @@ START_TEST(test_mnl_integer_from_string_bad_strings) {
   }
   free(invalid_integers);
 }
-
 END_TEST
+
+
+START_TEST(test_mnl_real_from_string) {
+  char* valid_floats = strdup("1.\n.1\n+.1\n-1.\n1.1\n+7.7438e-4\n");
+  char *start, *end;
+  start = valid_floats;
+  end = start;
+
+  while (*start != '\0') {
+    while (*end != '\n') {
+      ++end;
+    }
+    *end = '\0';
+
+    printf("testing string \"%s\" in the float parser...", start);
+
+    /* use start as a string: */
+    mnl_object* a = mnl_real_from_string(memory_pool, start);
+    ck_assert_ptr_ne(a, NULL);
+    ck_assert_uint_eq(a->type, MNL_REAL);
+
+
+    printf("   success!\n");
+
+    /* reset for the next string.*/
+    ++end;
+    start = end;
+  }
+  free(valid_floats);
+}
+END_TEST
+
+
 Suite* values_suite(void) {
   Suite* s;
 
@@ -113,6 +145,10 @@ Suite* values_suite(void) {
   tcase_add_test(tc_int, test_mnl_integer_from_string_tricky);
   tcase_add_test(tc_int, test_mnl_integer_from_string_bad_strings);
   suite_add_tcase(s, tc_int);
+
+  TCase* tc_float = tcase_create("mnl_real");
+  tcase_add_test(tc_float, test_mnl_real_from_string);
+  suite_add_tcase(s, tc_float);
 
   return s;
 }
