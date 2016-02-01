@@ -43,7 +43,7 @@ END_TEST
     mnl_object* i = mnl_integer_from_string(memory_pool, string); \
     ck_assert_ptr_ne(i, NULL); \
     ck_assert_uint_eq(i->type, MNL_INTEGER); \
-    ck_assert_int_eq(mpz_cmp(*(mpz_t*)(i->value), correct_value), 0); \
+    ck_assert_int_eq(mpz_cmp(i->integer, correct_value), 0); \
     release(memory_pool, i); \
   } while(0)
 
