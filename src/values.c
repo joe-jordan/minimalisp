@@ -66,15 +66,11 @@ mnl_object* mnl_real_from_string(mnl_pool* pool, char* s) {
   mnl_object* r = allocate(pool, sizeof(mnl_object));
   r->type = MNL_REAL;
 
-  if (s[0] == '+') {
-    /* for some reason, mpf can't handle leading +s. */
-    s = s+1;
-  }
-
   char* e;
+  size_t l = strlen(s);
   r->real = strtold(s, &e);
 
-  if (e == NULL || e == s) {
+  if (e != s + l) {
     release(pool, r);
     return NULL;
   }

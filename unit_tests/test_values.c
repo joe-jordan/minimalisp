@@ -63,7 +63,7 @@ END_TEST
 
 #define parse_int_failure(string) \
   do { \
-    mnl_object* n = mnl_integer_from_string(memory_pool, start); \
+    mnl_object* n = mnl_integer_from_string(memory_pool, string); \
     ck_assert_ptr_eq(n, NULL); \
   } while(0)
 
@@ -76,7 +76,7 @@ END_TEST
 
 #define parse_real_success(string) \
   do { \
-    mnl_object* r = mnl_real_from_string(memory_pool, start); \
+    mnl_object* r = mnl_real_from_string(memory_pool, string); \
     ck_assert_ptr_ne(r, NULL); \
     ck_assert_uint_eq(r->type, MNL_REAL); \
     release(memory_pool, r); \
@@ -86,6 +86,22 @@ START_TEST(test_mnl_real_from_string) {
   char* valid_reals = strdup("1.\n.1\n+.1\n-1.\n1.1\n+7.7438e-4\n");
   test_strings("real", valid_reals, parse_real_success);
   free(valid_reals);
+}
+END_TEST
+
+#define parse_real_failure(string) \
+  do { \
+    mnl_object* r = mnl_real_from_string(memory_pool, string); \
+    if (r != NULL) { \
+      printf("%Le", r->real); \
+    } \
+    ck_assert_ptr_eq(r, NULL); \
+  } while(0)
+
+START_TEST(test_mnl_real_from_string_bad_strings) {
+  char* invalid_reals = strdup("1.1.1\n4e.7\n8641.8677E1111111111\n");
+  test_strings("real", invalid_reals, parse_real_failure);
+  free(invalid_reals);
 }
 END_TEST
 
@@ -101,9 +117,10 @@ Suite* values_suite(void) {
   tcase_add_test(tc_int, test_mnl_integer_from_string_bad_strings);
   suite_add_tcase(s, tc_int);
 
-  TCase* tc_float = tcase_create("mnl_real");
-  tcase_add_test(tc_float, test_mnl_real_from_string);
-  suite_add_tcase(s, tc_float);
+  TCase* tc_real = tcase_create("mnl_real");
+  tcase_add_test(tc_real, test_mnl_real_from_string);
+  tcase_add_test(tc_real, test_mnl_real_from_string_bad_strings);
+  suite_add_tcase(s, tc_real);
 
   return s;
 }
