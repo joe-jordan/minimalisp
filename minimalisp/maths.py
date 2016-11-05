@@ -36,15 +36,14 @@ def validate_value_type(name, types=(object,)):
     return inner_decorator
 
 
-class MathFunctionOneArg(object):
-    def __init__(self, name, impl):
-        self.name = name
-        self.impl = impl
-        self.__call__ = pre_execute(name, 1, 1)(self.__call__)
+def MathFunctionOneArg(name, impl):
 
-    @instance_validate_value_type(numbers)
-    def __call__(self, context, x):
-        return Value(self.impl(x.v), actual=True)
+    @pre_execute(name, 1, 1)
+    @validate_value_type(numbers)
+    def math_fn(context, x):
+        return Value(impl(x.v), actual=True)
+
+    return math_fn
 
 
 sin = MathFunctionOneArg("SIN", math.sin)
