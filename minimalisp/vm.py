@@ -2,16 +2,17 @@ from __future__ import print_function, division
 
 from values import NIL, LispType, LispValue, Symbol, Value, Pair
 
-from parse import parse_token_prompt
+from parse import parse_token_prompt, parse_program
 
 from operator import mul
 
 import random
 random.seed()
 
+import os.path
+
 # overwritten in the executible
 PERMISSIVE = False
-
 
 class LispRuntimeError(BaseException):
     pass
@@ -32,8 +33,14 @@ class Context(dict):
     """stack-like dictionary."""
     def __init__(self, *args, **kwargs):
         # default arg that can only be specified by keyword. Python 3 fixes this problem.
-        parent = kwargs.pop('parent', None)
-        self.parent = parent
+        self.parent = kwargs.pop('parent', None)
+        self.env = kwargs.pop('environment', None)
+        if self.env is None:
+            try:
+                self.env = self.parent.env
+            except AttributeError:
+                raise LispRuntimeError('context constructor passed neither parent nor environment.')
+
         super(Context, self).__init__(*args, **kwargs)
 
     def __getitem__(self, key):
@@ -207,7 +214,7 @@ def _with(context, arg_bindings=NIL(), *lines_of_function_body):
             raise LispRuntimeError('WITH: cannot define an empty function.')
 
     # actually build the LispFunction object:
-    return UserLispFunction(arg_bindings, lines_of_function_body, args_as_list=args_as_list)
+    return UserLispFunction(arg_bindings, lines_of_function_body, context.env, args_as_list=args_as_list)
 
 
 @pre_execute("EVAL", 1)
@@ -218,6 +225,38 @@ def _eval(context, *lines):
         retval = peval(context, l)
 
     return retval
+
+
+import_cache = {}
+
+def eval_library(context, canonical_module_name, program):
+    fn = UserLispFunction(NIL(), program, canonical_module_name)
+    fn(context, NIL())
+    import_cache[canonical_module_name] = fn.last_execute_context
+
+
+def internal_import(context, canonical_module_name, program):
+    """For importing names from within the minimalisp implementation"""
+    if canonical_module_name not in import_cache:
+        eval_library(context, canonical_module_name, program)
+    context.update(import_cache[canonical_module_name])
+
+
+@pre_execute("IMPORT", 1)
+@static_validate_value_type('IMPORT', strings)
+def _import(context, source_file):
+    global import_cache
+    canonical_module_name = os.path.abspath(source_file.v)
+
+    if canonical_module_name not in import_cache:
+        try:
+            program = parse_program(open(canonical_module_name, 'r').read())
+        except IOError:
+            raise LispRuntimeError('IMPORT: invalid file to load "%s"' % canonical_module_name)
+        eval_library(context, canonical_module_name, program)
+
+    context.update(import_cache[canonical_module_name])
+    return NIL()
 
 
 @pre_execute("PUTS")
@@ -440,12 +479,13 @@ def dowhile(context, *body):
 
 
 class UserLispFunction(object):
-    def __init__(self, argbindings, functionbody, args_as_list=False):
+    def __init__(self, argbindings, functionbody, definition_env, args_as_list=False):
         # both are unquoted pairs, which WITH will check for us.
         self.args_as_list = args_as_list
         self.argbindings = argbindings
         self.functionbody = functionbody
         self.minc = 0
+        self.env = definition_env
 
         if args_as_list:
             # a list of arguments may be arbitrarily long.
@@ -467,7 +507,11 @@ class UserLispFunction(object):
     @instance_pre_execute("(user function)")
     def __call__(self, outer_context, *ap):
         # initialise a new context, with arguments bound to names specified (or NIL if none passed):
-        context = Context(parent=outer_context)
+        if self.env == outer_context.env:
+            context = Context(parent=outer_context)
+        else:
+            # executing a function defined in a different file: don't inherit the outer scope.
+            context = Context(parent=default_context_bindings(), environment=self.env)
         ab = self.argbindings
 
         # bind the arguments passed:
@@ -492,6 +536,7 @@ lib = {
     Symbol('bind'): bind,
     Symbol('with'): _with,
     Symbol('eval'): _eval,
+    Symbol('import'): _import,
     Symbol('puts'): puts,
     Symbol('gets'): gets,
     Symbol('cons'): cons,
@@ -515,21 +560,17 @@ lib = {
     Symbol('dowhile'): dowhile
 }
 
+def default_context_bindings():
+    return lib
 
-def run(program, use_stdlib=False, with_math=False):
-    outer_context = Context(lib)
-
-    if use_stdlib:
-        stdlib_program = use_stdlib
-
-        stdlib = UserLispFunction(NIL(), stdlib_program)
-
-        stdlib(outer_context, NIL())
-
-        outer_context = stdlib.last_execute_context
+def run(program, program_environment, with_math=False):
+    # we initialise the functions not implemented in the language (who do not
+    # care about contexts) as being in the user's own environment.
+    context = Context(default_context_bindings(), environment=program_environment)
 
     if with_math:
         import maths
-        outer_context.update(maths.maths_functions)
+        context.update(maths.maths_functions)
 
-    UserLispFunction(NIL(), program)(outer_context, NIL())
+    internal_import(context, program_environment, program)
+

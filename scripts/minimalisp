@@ -20,15 +20,14 @@ GENERAL_USAGE = """minimalisp accepts programs on stdin, or by filename."""
 def parse_args(args=sys.argv[1:]):
     p = argparse.ArgumentParser(description=GENERAL_USAGE)
     p.add_argument('file', help="input file.", type=str)
-    p.add_argument('-l', help="use the standard library functions.", action='store_true')
     p.add_argument('-p', help="permissive mode - throws less runtime errors.", action='store_true')
     p.add_argument('-m', help="use the maths library functions.", action='store_true')
     options, extras = p.parse_known_args(args)
-    return options.l, options.p, options.m, options.file
+    return options.p, options.m, options.file
 
 if __name__ == "__main__":
     import sys
-    use_stdlib, permissive_mode, with_math, filename = parse_args()
+    permissive_mode, with_math, filename = parse_args()
 
     if permissive_mode:
         vm.PERMISSIVE = True
@@ -37,17 +36,16 @@ if __name__ == "__main__":
     fn = False
 
     if filename:
+        env = os.path.abspath(filename)
         source = open(filename, 'r').read()
 
     if source is None:
+        env = "(stdin)"
         source = '\n'.join([line for line in fileinput.input('-')])
 
     program = parse_program(source)
 
-    if use_stdlib:
-        use_stdlib = parse_program(stdlib)
-
     try:
-        run(program, use_stdlib=use_stdlib, with_math=with_math)
+        run(program, env, with_math=with_math)
     except LispRuntimeError as e:
         print("  \033[1;31mERROR:\033[0m  %s" % e.message)

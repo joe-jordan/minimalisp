@@ -79,6 +79,8 @@
 (if 'seven '(puts "seven is bound to " seven) '(puts "seven is unbound"))
 
 ; apply lets you pass arguments to a function if you have them saved in a list.
+; we import the extensions library to get the apply function.
+(import "lib/ext.l")
 
 (bind 'the_arguments '(eight pair five))
 
