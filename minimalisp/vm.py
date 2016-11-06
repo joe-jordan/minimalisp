@@ -573,6 +573,10 @@ def run(program, program_environment, with_math=False):
     # care about contexts) as being in the user's own environment.
     context = Context(default_context_bindings(), environment=program_environment)
 
+    # before we execute the program, ensure it's context is registered in the
+    # import cache so that the functions can load an environment when run as
+    # callbacks.
+    import_cache[program_environment] = context
 
-    internal_import(context, program_environment, program)
+    UserLispFunction(NIL(), program, program_environment)(context, NIL())
 
