@@ -231,7 +231,7 @@ import_cache = {}
 
 def eval_library(context, canonical_module_name, program):
     fn = UserLispFunction(NIL(), program, canonical_module_name)
-    fn(context, NIL())
+    fn(Context(default_context_bindings(), environment=canonical_module_name), NIL())
     import_cache[canonical_module_name] = fn.last_execute_context
 
 
@@ -510,8 +510,9 @@ class UserLispFunction(object):
         if self.env == outer_context.env:
             context = Context(parent=outer_context)
         else:
-            # executing a function defined in a different file: don't inherit the outer scope.
-            context = Context(parent=default_context_bindings(), environment=self.env)
+            # executing a function defined in a different file: go and retrieve
+            # the correct outer scope.
+            context = Context(parent=import_cache[self.env], environment=self.env)
         ab = self.argbindings
 
         # bind the arguments passed:
