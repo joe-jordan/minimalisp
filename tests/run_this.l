@@ -2,6 +2,6 @@
 (bind 'list '(one two three))
 
 (bind 'myfunc (with '(arg)
-                   '(puts arg)))
+                    '(puts arg)))
 
 (myfunc "hello world!")
