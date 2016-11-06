@@ -565,13 +565,14 @@ def default_context_bindings():
     return lib
 
 def run(program, program_environment, with_math=False):
+    if with_math:
+        import maths
+        lib.update(maths.maths_functions)
+
     # we initialise the functions not implemented in the language (who do not
     # care about contexts) as being in the user's own environment.
     context = Context(default_context_bindings(), environment=program_environment)
 
-    if with_math:
-        import maths
-        context.update(maths.maths_functions)
 
     internal_import(context, program_environment, program)
 
