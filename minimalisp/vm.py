@@ -354,10 +354,10 @@ def _round(context, f):
     return Value(int(round(f.v)), actual=True)
 
 
-@pre_execute(".")
-@static_validate_value_type(".", strings)
+@pre_execute("JOIN")
+@static_validate_value_type("JOIN", strings)
 def concatinate(context, *terms):
-    return Value("".join(terms), actual=True)
+    return Value("".join([t.v for t in terms]), actual=True)
 
 
 @pre_execute('SPLIT', 1, 2)
@@ -549,7 +549,7 @@ lib = {
     Symbol('i/'): idivide,
     Symbol('%'): modulo,
     Symbol('round'): _round,
-    Symbol('.'): concatinate,
+    Symbol('join'): concatinate,
     Symbol('split'): split,
     Symbol('rand'): rand,
     Symbol('if'): _if,
